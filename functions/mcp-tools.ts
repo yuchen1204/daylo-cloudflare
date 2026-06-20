@@ -269,6 +269,48 @@ const createNotebookTool: MCPTool = {
   },
 };
 
+const updateNotebookTool: MCPTool = {
+  name: 'update_notebook',
+  description: 'Update notebook name, color, or icon',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      notebook_id: { type: 'string', description: 'Notebook ID' },
+      name: { type: 'string', description: 'New notebook name' },
+      color: { type: 'string', description: 'Hex color code (e.g. "#ff0000")' },
+      icon: { type: 'string', description: 'Icon identifier' },
+    },
+    required: ['notebook_id'],
+  },
+  handler: async (input, db, userId) => {
+    const existing = await db.prepare('SELECT id FROM notebooks WHERE id = ? AND user_id = ?')
+      .bind(input.notebook_id, userId)
+      .first();
+    
+    if (!existing) {
+      throw new Error('Notebook not found');
+    }
+
+    await db.prepare(
+      `UPDATE notebooks SET
+        name = COALESCE(?, name),
+        color = COALESCE(?, color),
+        icon = COALESCE(?, icon)
+      WHERE id = ? AND user_id = ?`
+    )
+      .bind(
+        input.name ?? null,
+        input.color ?? null,
+        input.icon ?? null,
+        input.notebook_id,
+        userId
+      )
+      .run();
+
+    return { success: true };
+  },
+};
+
 const deleteNotebookTool: MCPTool = {
   name: 'delete_notebook',
   description: 'Delete a notebook',
@@ -305,6 +347,7 @@ export const mcpTools: MCPTool[] = [
   searchNotesTool,
   listNotebooksTool,
   createNotebookTool,
+  updateNotebookTool,
   deleteNotebookTool,
 ];
 
