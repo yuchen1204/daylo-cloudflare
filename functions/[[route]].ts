@@ -390,10 +390,74 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
 
+      // Handle resources/list
+      if (body.method === 'resources/list') {
+        return json({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: {
+            resources: [
+              {
+                uri: 'resources://notes',
+                name: 'All Notes',
+                mimeType: 'application/json',
+                description: 'List of all notes with metadata',
+              },
+              {
+                uri: 'resources://notebooks',
+                name: 'All Notebooks',
+                mimeType: 'application/json',
+                description: 'List of all notebooks',
+              },
+            ],
+          },
+        });
+      }
+
       // Handle resources/read
       if (body.method === 'resources/read') {
         const { readNoteResource, listNotebookResources } = await import('./mcp-resources');
         const uri = body.params?.uri as string;
+
+        // Handle resources://notes
+        if (uri === 'resources://notes') {
+          if (!mcpUserId) throw new Error('No user associated with this API key');
+          const { results } = await env.DB.prepare(
+            'SELECT id, title, format, tags, notebook_id, is_pinned, created_at, updated_at FROM notes WHERE user_id = ?'
+          ).bind(mcpUserId).all();
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              contents: [{
+                uri: 'resources://notes',
+                mimeType: 'application/json',
+                text: JSON.stringify(results.map((n: any) => ({
+                  ...n, tags: JSON.parse(n.tags || '[]')
+                })), null, 2),
+              }],
+            },
+          });
+        }
+
+        // Handle resources://notebooks
+        if (uri === 'resources://notebooks') {
+          if (!mcpUserId) throw new Error('No user associated with this API key');
+          const { results } = await env.DB.prepare(
+            'SELECT * FROM notebooks WHERE user_id = ?'
+          ).bind(mcpUserId).all();
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              contents: [{
+                uri: 'resources://notebooks',
+                mimeType: 'application/json',
+                text: JSON.stringify(results, null, 2),
+              }],
+            },
+          });
+        }
 
         const noteMatch = uri.match(/^note:\/\/\/(.+)$/);
         if (noteMatch) {
