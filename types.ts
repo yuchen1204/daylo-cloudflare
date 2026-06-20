@@ -83,3 +83,12 @@ export interface Permission {
     };
   };
 }
+
+export interface NoteTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  content: string;
+  format: 'markdown' | 'txt';
+  isBuiltin: boolean;
+}

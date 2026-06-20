@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { AppSettings, NoteFormat } from '../types';
-import { X, Settings, Type, Grid, GitGraph } from 'lucide-react';
+import { X, Settings, Type, Grid, GitGraph, FileText } from 'lucide-react';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { MarkdownSettings } from './settings/MarkdownSettings';
 import { CanvasSettings } from './settings/CanvasSettings';
 import { MindmapSettings } from './settings/MindmapSettings';
+import { TemplateManager } from './TemplateManager';
+import { useTemplates } from '../hooks/useTemplates';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,7 +18,7 @@ interface SettingsModalProps {
 }
 
 type TimeUnit = 'seconds' | 'minutes' | 'hours' | 'changes';
-type SettingsTab = 'general' | 'markdown' | 'canvas' | 'mindmap';
+type SettingsTab = 'general' | 'markdown' | 'canvas' | 'mindmap' | 'templates';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, installPrompt, onInstallPWA }) => {
   // Local state for history inputs to allow validation/formatting before saving
@@ -24,6 +26,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [snapshotUnit, setSnapshotUnit] = useState<TimeUnit>('minutes');
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  
+  // Templates
+  const { templates, addTemplate, updateTemplate, deleteTemplate } = useTemplates();
 
   // Load settings into local state when modal opens
   useEffect(() => {
@@ -105,6 +110,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       >
         <GitGraph className="w-4 h-4" /> MindMap
       </button>
+      <button 
+        onClick={() => setActiveTab('templates')}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'templates' ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+        style={{ color: activeTab === 'templates' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+      >
+        <FileText className="w-4 h-4" /> Templates
+      </button>
     </div>
   );
 
@@ -146,6 +158,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             )}
             {activeTab === 'mindmap' && (
               <MindmapSettings localSettings={localSettings} updateNested={updateNested} />
+            )}
+            {activeTab === 'templates' && (
+              <TemplateManager
+                templates={templates}
+                onAdd={addTemplate}
+                onUpdate={updateTemplate}
+                onDelete={deleteTemplate}
+              />
             )}
           </div>
         </div>

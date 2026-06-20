@@ -25,7 +25,8 @@ import {
   LogOut,
   User as UserIcon,
   Cloud,
-  Download
+  Download,
+  Clock
 } from 'lucide-react';
 import { cloudSyncService } from '../services/cloudflare-sync';
 import { ConfirmModal } from './ConfirmModal';
@@ -34,6 +35,8 @@ import { HistoryCompareModal } from './HistoryCompareModal';
 import { LoginModal } from './LoginModal'; // Added
 import { ProfileModal } from './ProfileModal';
 import { getTagColor } from '../constants';
+import { TemplatePicker } from './TemplatePicker';
+import { useTemplates } from '../hooks/useTemplates';
 import { 
   DndContext, 
   closestCenter, 
@@ -300,6 +303,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Tag Filtering State
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  // Templates
+  const { templates, applyTemplate } = useTemplates();
 
   const triggerImport = (notebookId: string) => {
     setImportTargetNotebookId(notebookId);
@@ -681,6 +687,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                              noteCount={group.notes.length}
                              disabled={!isDnDEnabled}
                           />
+                          
+                          {/* Template Picker */}
+                          {expandedNotebooks.has(group.id) && !isDnDEnabled && (
+                            <div className="ml-6 mb-1">
+                              <TemplatePicker
+                                templates={templates}
+                                onSelect={(template) => {
+                                  const content = applyTemplate(template.content);
+                                  onCreateNote(group.id, '', template.format, content);
+                                  const newExpanded = new Set(expandedNotebooks);
+                                  newExpanded.add(group.id);
+                                  setExpandedNotebooks(newExpanded);
+                                }}
+                              />
+                            </div>
+                          )}
 
                           {/* Notes List */}
                           {expandedNotebooks.has(group.id) && (
@@ -696,7 +718,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 {group.notes.length === 0 && !creatingNoteInNotebookId ? (
                                   <div className="pl-4 py-2 text-xs italic" style={{ color: 'var(--text-muted)' }}>Empty notebook</div>
                                 ) : (
-                                  <ul className="space-y-0.5">
+                                  <ul className={`space-y-0.5 ${group.notes.length > 50 ? 'max-h-[400px] overflow-y-auto' : ''}`}>
                                     {group.notes.map(note => (
                                       <SortableNoteItem 
                                          key={note.id} 
