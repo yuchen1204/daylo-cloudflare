@@ -105,6 +105,20 @@ const AuthenticatedApp: React.FC = () => {
     localStorage.setItem('pwa-banner-dismissed', 'true');
   };
 
+  const handleLogin = async (user: User) => {
+    setUser(user);
+    try {
+      const newData = await cloudSyncService.handleLogin(user);
+      setNotes(newData.notes);
+      setNotebooks(newData.notebooks);
+      if (newData.notes.length > 0) {
+        setActiveNoteId(newData.notes[0].id);
+      }
+    } catch (e) {
+      console.error("Login sync failed", e);
+    }
+  };
+
   // Auth Listener - check for existing token on mount
   useEffect(() => {
     const currentUser = cloudSyncService.currentUser;
@@ -296,7 +310,7 @@ const AuthenticatedApp: React.FC = () => {
           onInstallPWA={handleInstallPWA}
           onDismissPWABanner={handleDismissPWABanner}
           user={user}
-          onLogin={handleUserLogin}
+          onLogin={handleLogin}
         />
       )}
 
