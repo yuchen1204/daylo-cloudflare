@@ -284,7 +284,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     const { readable, writer } = createSSEStream();
 
-    const sseResponse = formatSSE('endpoint', JSON.stringify({ endpoint: messageUrl }));
+    // Send endpoint URL as plain text (not JSON) for compatibility with omnichat
+    const sseResponse = formatSSE('endpoint', messageUrl);
     writer.write(sseResponse);
 
     return new Response(readable, {
