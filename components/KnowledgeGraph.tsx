@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Note } from '../types';
 import { X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
@@ -29,8 +29,9 @@ const NOTEBOOK_COLORS: Record<string, string> = {};
 
 const getColorForNotebook = (notebookId: string): string => {
   if (!NOTEBOOK_COLORS[notebookId]) {
-    const hue = Object.keys(NOTEBOOK_COLORS).length * 60;
-    NOTEBOOK_COLORS[notebookId] = `hsl(${hue % 360}, 70%, 50%)`;
+    const palette = ['#FF006E', '#00FFFF', '#FFB000', '#00FF41', '#A855F7', '#FF6B6B'];
+    const idx = Object.keys(NOTEBOOK_COLORS).length % palette.length;
+    NOTEBOOK_COLORS[notebookId] = palette[idx];
   }
   return NOTEBOOK_COLORS[notebookId];
 };
@@ -51,6 +52,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragNode, setDragNode] = useState<GraphNode | null>(null);
   const animationRef = useRef<number>(0);
+  const timeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -158,50 +160,100 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let frameId: number;
+
     const render = () => {
+      timeRef.current += 0.02;
+      const t = timeRef.current;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.translate(offset.x, offset.y);
       ctx.scale(zoom, zoom);
 
+      // Draw edges with neon glow
       edges.forEach(edge => {
         const source = nodes.find(n => n.id === edge.source);
         const target = nodes.find(n => n.id === edge.target);
         if (source && target) {
+          const pulse = Math.sin(t * 2 + source.x * 0.01) * 0.3 + 0.7;
+          
+          // Outer glow
           ctx.beginPath();
           ctx.moveTo(source.x, source.y);
           ctx.lineTo(target.x, target.y);
-          ctx.strokeStyle = 'rgba(128, 128, 128, 0.3)';
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.08 * pulse})`;
+          ctx.lineWidth = 6;
+          ctx.stroke();
+
+          // Inner glow
+          ctx.beginPath();
+          ctx.moveTo(source.x, source.y);
+          ctx.lineTo(target.x, target.y);
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.25 * pulse})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Core line
+          ctx.beginPath();
+          ctx.moveTo(source.x, source.y);
+          ctx.lineTo(target.x, target.y);
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 * pulse})`;
           ctx.lineWidth = 1;
           ctx.stroke();
         }
       });
 
+      // Draw nodes with neon halo
       nodes.forEach(node => {
-        const radius = Math.max(8, Math.min(20, node.connections * 3 + 8));
+        const radius = Math.max(6, Math.min(18, node.connections * 2 + 6));
         const color = getColorForNotebook(node.notebookId);
+        const isHovered = hoveredNode?.id === node.id;
+        const isSelected = selectedNode?.id === node.id;
+        const pulse = Math.sin(t * 3 + node.x * 0.02) * 0.15 + 0.85;
+        const haloRadius = radius + (isHovered || isSelected ? 12 : 6);
+
+        // Outer glow halo
+        const gradient = ctx.createRadialGradient(
+          node.x, node.y, radius,
+          node.x, node.y, haloRadius
+        );
+        gradient.addColorStop(0, color.replace(')', `, ${0.4 * pulse})`).replace('rgb', 'rgba'));
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Node body
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
-        
-        if (hoveredNode?.id === node.id || selectedNode?.id === node.id) {
+
+        // Node border glow
+        if (isHovered || isSelected) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, radius + 2, 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 2;
           ctx.stroke();
         }
 
-        ctx.fillStyle = '#333';
-        ctx.font = '12px Inter, sans-serif';
+        // Label
+        ctx.font = '10px "Space Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(node.title, node.x, node.y + radius + 16);
+        ctx.fillStyle = `rgba(255, 255, 255, ${isHovered || isSelected ? 1 : 0.7})`;
+        ctx.fillText(node.title, node.x, node.y + radius + 14);
       });
 
       ctx.restore();
+      frameId = requestAnimationFrame(render);
     };
 
-    render();
+    frameId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(frameId);
   }, [nodes, edges, zoom, offset, hoveredNode, selectedNode]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -281,58 +333,181 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col" style={{ background: 'var(--bg-primary)' }}>
-      <div className="h-14 border-b flex items-center justify-between px-4 shrink-0" style={{ borderColor: 'var(--border-primary)' }}>
-        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Knowledge Graph</h2>
-        <div className="flex items-center gap-2">
+    <div className="fixed inset-0 z-[10000] flex flex-col" style={{ background: '#0A0014' }}>
+      {/* CRT Scanline Overlay */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-[10001]"
+        style={{
+          background: 'repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px)',
+          mixBlendMode: 'multiply',
+        }}
+      />
+
+      {/* Header */}
+      <div 
+        className="h-14 border-b flex items-center justify-between px-6 shrink-0 relative"
+        style={{ 
+          borderColor: 'rgba(0, 255, 255, 0.15)',
+          background: 'linear-gradient(180deg, rgba(10, 0, 20, 0.95) 0%, rgba(10, 0, 20, 0.8) 100%)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <h2 
+          className="text-lg font-bold tracking-wider uppercase"
+          style={{ 
+            fontFamily: '"Orbitron", sans-serif',
+            color: '#00FFFF',
+            textShadow: '2px 0 #FF006E, -2px 0 #00FFFF, 0 0 20px rgba(0, 255, 255, 0.5)',
+          }}
+        >
+          Knowledge Graph
+        </h2>
+        
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setZoom(prev => Math.min(3, prev * 1.2))}
-            className="p-2 rounded-md hover:bg-[var(--interactive-hover)] transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="p-2 transition-all"
+            style={{ 
+              color: '#00FFFF',
+              border: '1px solid rgba(0, 255, 255, 0.2)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 255, 255, 0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             <ZoomIn className="w-4 h-4" />
           </button>
           <button
             onClick={() => setZoom(prev => Math.max(0.1, prev * 0.8))}
-            className="p-2 rounded-md hover:bg-[var(--interactive-hover)] transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="p-2 transition-all"
+            style={{ 
+              color: '#00FFFF',
+              border: '1px solid rgba(0, 255, 255, 0.2)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 255, 255, 0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             <ZoomOut className="w-4 h-4" />
           </button>
           <button
             onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}
-            className="p-2 rounded-md hover:bg-[var(--interactive-hover)] transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="p-2 transition-all"
+            style={{ 
+              color: '#00FFFF',
+              border: '1px solid rgba(0, 255, 255, 0.2)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 255, 255, 0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+          <div className="w-px h-6 mx-1" style={{ background: 'rgba(0, 255, 255, 0.2)' }} />
           <button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-[var(--interactive-hover)] transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="p-2 transition-all"
+            style={{ 
+              color: '#FF006E',
+              border: '1px solid rgba(255, 0, 110, 0.2)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255, 0, 110, 0.1)';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 0, 110, 0.3)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      {/* Canvas */}
       <div className="flex-1 relative overflow-hidden">
         <canvas
           ref={canvasRef}
           width={1200}
           height={800}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+          className="w-full h-full"
+          style={{ 
+            background: 'radial-gradient(ellipse at center, #0D0025 0%, #0A0014 70%)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+          }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onClick={handleClick}
           onWheel={handleWheel}
-          style={{ background: 'var(--bg-secondary)' }}
         />
         
-        <div className="absolute bottom-4 left-4 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)' }}>
-          {nodes.length} notes • {edges.length} connections
+        {/* Stats */}
+        <div 
+          className="absolute bottom-4 left-4 px-4 py-2 text-xs"
+          style={{ 
+            fontFamily: '"Space Mono", monospace',
+            color: '#00FFFF',
+            background: 'rgba(10, 0, 20, 0.8)',
+            border: '1px solid rgba(0, 255, 255, 0.2)',
+            textShadow: '0 0 8px rgba(0, 255, 255, 0.5)',
+          }}
+        >
+          <span style={{ color: '#FF006E' }}>{nodes.length}</span> notes 
+          <span className="mx-2" style={{ color: 'rgba(0, 255, 255, 0.3)' }}>|</span>
+          <span style={{ color: '#FF006E' }}>{edges.length}</span> connections
         </div>
+
+        {/* Selected node info */}
+        {selectedNode && (
+          <div 
+            className="absolute bottom-4 right-4 px-4 py-3 text-xs"
+            style={{ 
+              fontFamily: '"Space Mono", monospace',
+              color: '#fff',
+              background: 'rgba(10, 0, 20, 0.9)',
+              border: '1px solid rgba(255, 0, 110, 0.3)',
+              boxShadow: '0 0 20px rgba(255, 0, 110, 0.2)',
+              maxWidth: '280px',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <div 
+                className="w-2 h-2 rounded-full"
+                style={{ 
+                  background: getColorForNotebook(selectedNode.notebookId),
+                  boxShadow: `0 0 8px ${getColorForNotebook(selectedNode.notebookId)}`,
+                }}
+              />
+              <span style={{ 
+                fontFamily: '"Orbitron", sans-serif',
+                color: '#FF006E',
+                textShadow: '0 0 10px rgba(255, 0, 110, 0.5)',
+              }}>
+                {selectedNode.title}
+              </span>
+            </div>
+            <div style={{ color: 'rgba(0, 255, 255, 0.6)' }}>
+              {selectedNode.connections} connection{selectedNode.connections !== 1 ? 's' : ''}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
