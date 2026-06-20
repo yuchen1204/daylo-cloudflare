@@ -152,6 +152,41 @@ const AuthenticatedApp: React.FC = () => {
   // No real-time sync listeners needed - cloudflare-sync uses REST API
   // Sync happens on login and on each mutation
 
+  // Reminder notifications
+  useEffect(() => {
+    if (!('Notification' in window)) return;
+
+    const hasReminder = notes.some(n => n.reminder && !n.reminder.completed);
+    if (hasReminder && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    const now = Date.now();
+    const upcomingReminders = notes
+      .filter(n => n.reminder && !n.reminder.completed)
+      .filter(n => {
+        const reminderTime = new Date(n.reminder!.date).getTime();
+        return reminderTime > now && reminderTime - now < 24 * 60 * 60 * 1000;
+      });
+
+    const timeouts = upcomingReminders.map(note => {
+      const reminderTime = new Date(note.reminder!.date).getTime();
+      const delay = reminderTime - now;
+      
+      return setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('Reminder', {
+            body: note.title || 'Untitled Note',
+            icon: '/icon.svg',
+            tag: note.id,
+          });
+        }
+      }, delay);
+    });
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [notes]);
+
   // Load data from IndexedDB on mount
   useEffect(() => {
     const init = async () => {
@@ -397,6 +432,8 @@ const AuthenticatedApp: React.FC = () => {
           onToggleFocusMode={() => setIsFocusMode(!isFocusMode)}
           availableTags={allTags}
           user={user}
+          allNotes={notes}
+          onNavigateToNote={(noteId) => setActiveNoteId(noteId)}
         />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center transition-colors" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>

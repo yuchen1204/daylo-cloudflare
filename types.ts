@@ -11,6 +11,7 @@ export interface Note {
   isPinned?: boolean;
   order?: number;
   accessInfo?: AccessInfo;
+  reminder?: NoteReminder;
 }
 
 export interface NoteHistoryEntry {
@@ -91,4 +92,10 @@ export interface NoteTemplate {
   content: string;
   format: 'markdown' | 'txt';
   isBuiltin: boolean;
+}
+
+export interface NoteReminder {
+  date: string; // ISO 8601 datetime
+  completed: boolean;
+  createdAt: number;
 }

@@ -17,6 +17,9 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { MermaidBlock } from './MermaidBlock';
 import { TaskListItem } from './TaskListItem';
+import { WikiLink } from './WikiLink';
+import { useWikiLinks } from '../hooks/useWikiLinks';
+import { ReminderPicker } from './ReminderPicker';
 
 // Final, optimized Code Block. This replaces the <pre> tag entirely.
 const CodeBlock = ({ children }) => {
@@ -100,6 +103,33 @@ const MermaidCodeBlock = ({ node, inline, className, children, ...props }) => {
   );
 };
 
+// WikiLink renderer for [[links]] in markdown
+const WikiLinkRenderer = ({ children, allNotes, onNavigateToNote }: { children: React.ReactNode, allNotes: Note[], onNavigateToNote?: (noteId: string) => void }) => {
+  const text = String(children);
+  const parts = text.split(/(\[\[[^\]]+\]\])/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        const match = part.match(/^\[\[([^\]]+)\]$/);
+        if (match) {
+          const title = match[1];
+          const note = allNotes.find(n => n.title?.toLowerCase() === title.toLowerCase());
+          return (
+            <WikiLink
+              key={index}
+              title={title}
+              note={note || null}
+              onClick={(noteId) => onNavigateToNote?.(noteId)}
+            />
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+};
+
 
 interface User {
   id: string;
@@ -115,6 +145,8 @@ interface EditorProps {
   onToggleFocusMode: () => void;
   availableTags?: string[];
   user?: User | null;
+  allNotes?: Note[];
+  onNavigateToNote?: (noteId: string) => void;
 }
 
 export const Editor: React.FC<EditorProps> = ({ 
@@ -125,7 +157,9 @@ export const Editor: React.FC<EditorProps> = ({
   isFocusMode,
   onToggleFocusMode,
   availableTags = [],
-  user
+  user,
+  allNotes = [],
+  onNavigateToNote
 }) => {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -221,6 +255,38 @@ export const Editor: React.FC<EditorProps> = ({
       ...note,
       isPinned: !note.isPinned,
       updatedAt: Date.now()
+    });
+  };
+
+  // Reminder handlers
+  const handleSetReminder = (date: string) => {
+    onUpdate({
+      ...note,
+      reminder: {
+        date,
+        completed: false,
+        createdAt: Date.now(),
+      },
+      updatedAt: Date.now(),
+    });
+  };
+
+  const handleClearReminder = () => {
+    onUpdate({
+      ...note,
+      reminder: undefined,
+      updatedAt: Date.now(),
+    });
+  };
+
+  const handleCompleteReminder = () => {
+    onUpdate({
+      ...note,
+      reminder: note.reminder ? {
+        ...note.reminder,
+        completed: true,
+      } : undefined,
+      updatedAt: Date.now(),
     });
   };
 
@@ -548,6 +614,14 @@ export const Editor: React.FC<EditorProps> = ({
                <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
              </button>
              
+             {/* Reminder Picker */}
+             <ReminderPicker
+               reminder={note.reminder}
+               onSet={handleSetReminder}
+               onClear={handleClearReminder}
+               onComplete={handleCompleteReminder}
+             />
+             
              {/* NEW CANVAS FILE MENU */}
              {isCanvas && (
               <div className="relative">
@@ -780,6 +854,11 @@ export const Editor: React.FC<EditorProps> = ({
                     components={{
                       pre: CodeBlock,
                       code: MermaidCodeBlock,
+                      p: ({ children }) => (
+                        <WikiLinkRenderer allNotes={allNotes} onNavigateToNote={onNavigateToNote}>
+                          {children}
+                        </WikiLinkRenderer>
+                      ),
                     }}
                   >
                     {content}
@@ -798,6 +877,11 @@ export const Editor: React.FC<EditorProps> = ({
                   components={{
                     pre: CodeBlock,
                     code: MermaidCodeBlock,
+                    p: ({ children }) => (
+                      <WikiLinkRenderer allNotes={allNotes} onNavigateToNote={onNavigateToNote}>
+                        {children}
+                      </WikiLinkRenderer>
+                    ),
                   }}
                 >
                   {content}

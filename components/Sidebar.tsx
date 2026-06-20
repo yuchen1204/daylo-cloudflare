@@ -37,6 +37,7 @@ import { ProfileModal } from './ProfileModal';
 import { getTagColor } from '../constants';
 import { TemplatePicker } from './TemplatePicker';
 import { useTemplates } from '../hooks/useTemplates';
+import { KnowledgeGraph } from './KnowledgeGraph';
 import { 
   DndContext, 
   closestCenter, 
@@ -306,6 +307,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Templates
   const { templates, applyTemplate } = useTemplates();
+
+  // Knowledge Graph
+  const [isKnowledgeGraphOpen, setIsKnowledgeGraphOpen] = useState(false);
+
+  // Reminders
+  const [isRemindersExpanded, setIsRemindersExpanded] = useState(false);
+  const reminders = useMemo(() => {
+    return notes
+      .filter(n => n.reminder && !n.reminder.completed)
+      .sort((a, b) => new Date(a.reminder!.date).getTime() - new Date(b.reminder!.date).getTime());
+  }, [notes]);
 
   const triggerImport = (notebookId: string) => {
     setImportTargetNotebookId(notebookId);
@@ -583,9 +595,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <h1 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 pl-2" style={{ color: 'var(--text-muted)' }}>
                <Book className="w-3.5 h-3.5" /> Library
             </h1>
-            <button onClick={startCreateNotebook} className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors" style={{ color: 'var(--text-muted)' }} title="New Notebook">
-               <FolderPlus className="w-4 h-4" />
-             </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setIsKnowledgeGraphOpen(true)} className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors" style={{ color: 'var(--text-muted)' }} title="Knowledge Graph">
+                <Network className="w-4 h-4" />
+              </button>
+              <button onClick={startCreateNotebook} className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors" style={{ color: 'var(--text-muted)' }} title="New Notebook">
+                 <FolderPlus className="w-4 h-4" />
+               </button>
+            </div>
           </div>
         </div>
 
@@ -658,6 +675,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <NoteItem key={note.id} note={note} isActive={activeNoteId === note.id} onSelect={() => onSelectNote(note.id)} onRequestDelete={(e) => requestDeleteNote(note.id, note.title, e)} showPinIcon />
                       ))}
                    </ul>
+                   <div className="my-2 border-b mx-2" style={{ borderColor: 'var(--border-subtle)' }}></div>
+                 </div>
+               )}
+
+               {/* Reminders */}
+               {reminders.length > 0 && (
+                 <div className="mb-4">
+                   <button 
+                     onClick={() => setIsRemindersExpanded(!isRemindersExpanded)}
+                     className="w-full flex items-center gap-2 px-2 py-1 mb-1 text-xs font-semibold uppercase tracking-wider hover:bg-[var(--interactive-hover)] rounded transition-colors"
+                     style={{ color: 'var(--text-muted)' }}
+                   >
+                     <Clock className="w-3 h-3" /> <span>Reminders ({reminders.length})</span>
+                     {isRemindersExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                   </button>
+                   {isRemindersExpanded && (
+                     <ul className="ml-0 space-y-0.5">
+                       {reminders.map(note => (
+                         <NoteItem 
+                           key={note.id} 
+                           note={note} 
+                           isActive={activeNoteId === note.id} 
+                           onSelect={() => onSelectNote(note.id)} 
+                           onRequestDelete={(e) => requestDeleteNote(note.id, note.title, e)}
+                         />
+                       ))}
+                     </ul>
+                   )}
                    <div className="my-2 border-b mx-2" style={{ borderColor: 'var(--border-subtle)' }}></div>
                  </div>
                )}
@@ -850,6 +895,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <HistoryCompareModal isOpen={!!selectedHistory} onClose={() => setSelectedHistory(null)} historyEntry={selectedHistory} currentContent={currentContent} onRestore={onRestoreHistory} />
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={onLogin} />
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} />
+      
+      {/* Knowledge Graph */}
+      <KnowledgeGraph
+        notes={notes}
+        isOpen={isKnowledgeGraphOpen}
+        onClose={() => setIsKnowledgeGraphOpen(false)}
+        onNavigateToNote={(noteId) => {
+          onSelectNote(noteId);
+          setIsKnowledgeGraphOpen(false);
+        }}
+      />
     </DndContext>
   );
 };
