@@ -55,7 +55,8 @@ const AuthenticatedApp: React.FC = () => {
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     notes.forEach(note => {
-      if (note.tags) note.tags.forEach(t => tags.add(t));
+      const noteTags = Array.isArray(note.tags) ? note.tags : [];
+      noteTags.forEach(t => tags.add(t));
     });
     return Array.from(tags).sort();
   }, [notes]);

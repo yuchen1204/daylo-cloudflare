@@ -354,11 +354,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const tagStats = useMemo(() => {
     const counts = new Map<string, number>();
     notes.forEach(note => {
-      if (note.tags) {
-        note.tags.forEach(t => {
-          counts.set(t, (counts.get(t) || 0) + 1);
-        });
-      }
+      const noteTags = Array.isArray(note.tags) ? note.tags : [];
+      noteTags.forEach(t => {
+        counts.set(t, (counts.get(t) || 0) + 1);
+      });
     });
     return Array.from(counts.entries())
       .map(([tag, count]) => ({ tag, count }))
@@ -467,7 +466,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const finalFilteredNotes = selectedTag 
-    ? searchFilteredNotes.filter(n => n.tags && n.tags.includes(selectedTag))
+    ? searchFilteredNotes.filter(n => Array.isArray(n.tags) && n.tags.includes(selectedTag))
     : searchFilteredNotes;
 
   const filteredNotes = finalFilteredNotes.sort((a, b) => {
@@ -856,7 +855,7 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, isActive, onSelect, onRequest
             <span className="text-[10px] text-slate-400 shrink-0">
                {new Date(note.updatedAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
             </span>
-            {note.tags && note.tags.length > 0 && (
+            {Array.isArray(note.tags) && note.tags.length > 0 && (
               <div className="flex gap-1 overflow-hidden">
                 {note.tags.slice(0, 2).map(tag => (
                    <span key={tag} className={`inline-block w-1.5 h-1.5 rounded-full ${getTagColor(tag).split(' ')[0]}`}></span>
