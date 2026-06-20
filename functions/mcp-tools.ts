@@ -37,7 +37,7 @@ function createChunkedResult(data: unknown): { chunks: string[]; final: MCPToolR
 
 const listNotesTool: MCPTool = {
   name: 'list_notes',
-  description: 'List all notes, optionally filtered by notebook or tag',
+  description: 'List all notes, optionally filtered by notebook, tag, or pinned status',
   inputSchema: {
     type: 'object',
     properties: {
@@ -134,7 +134,7 @@ const createNoteTool: MCPTool = {
 
 const updateNoteTool: MCPTool = {
   name: 'update_note',
-  description: 'Update an existing note',
+  description: 'Update an existing note (title, content, tags, pin status, notebook, format)',
   inputSchema: {
     type: 'object',
     properties: {

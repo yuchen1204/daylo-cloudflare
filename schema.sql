@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS notes (
   content TEXT NOT NULL DEFAULT '',
   format TEXT NOT NULL DEFAULT 'markdown',
   tags TEXT NOT NULL DEFAULT '[]',
+  is_pinned INTEGER NOT NULL DEFAULT 0,
   is_public INTEGER NOT NULL DEFAULT 0,
   public_link_id TEXT,
   created_at INTEGER NOT NULL DEFAULT (unixepoch()),

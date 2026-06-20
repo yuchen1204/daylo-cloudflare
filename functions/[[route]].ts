@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS notes (
   content TEXT NOT NULL DEFAULT '',
   format TEXT NOT NULL DEFAULT 'markdown',
   tags TEXT NOT NULL DEFAULT '[]',
+  is_pinned INTEGER NOT NULL DEFAULT 0,
   is_public INTEGER NOT NULL DEFAULT 0,
   public_link_id TEXT,
   created_at INTEGER NOT NULL DEFAULT (unixepoch()),
@@ -187,6 +188,12 @@ async function ensureDbInitialized(db: D1Database) {
   try {
     const stmts = SCHEMA_SQL.split(';').filter(s => s.trim()).map(sql => db.prepare(sql));
     await db.batch(stmts);
+    // Migration: add is_pinned column to existing notes tables
+    try {
+      await db.prepare('ALTER TABLE notes ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0').run();
+    } catch {
+      // Column already exists, ignore
+    }
     dbInitialized = true;
   } catch {
     dbInitialized = true;
