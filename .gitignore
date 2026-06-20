@@ -29,3 +29,6 @@ dist-ssr
 # Firebase cache & emulators
 .firebase/
 firebase-debug.log*
+
+# Cloudflare Wrangler
+.wrangler/
