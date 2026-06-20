@@ -211,6 +211,37 @@ const deleteNoteTool: MCPTool = {
   },
 };
 
+const restoreNoteHistoryTool: MCPTool = {
+  name: 'restore_note_history',
+  description: 'Restore a note to specific content',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      note_id: { type: 'string', description: 'Note ID' },
+      content: { type: 'string', description: 'Content to restore' },
+    },
+    required: ['note_id', 'content'],
+  },
+  handler: async (input, db, userId) => {
+    const existing = await db.prepare('SELECT id FROM notes WHERE id = ? AND user_id = ?')
+      .bind(input.note_id, userId)
+      .first();
+    
+    if (!existing) {
+      throw new Error('Note not found');
+    }
+
+    await db.prepare(
+      `UPDATE notes SET content = ?, updated_at = unixepoch()
+       WHERE id = ? AND user_id = ?`
+    )
+      .bind(input.content, input.note_id, userId)
+      .run();
+
+    return { success: true, message: 'Note restored' };
+  },
+};
+
 const searchNotesTool: MCPTool = {
   name: 'search_notes',
   description: 'Full-text search notes',
@@ -370,6 +401,7 @@ export const mcpTools: MCPTool[] = [
   createNoteTool,
   updateNoteTool,
   deleteNoteTool,
+  restoreNoteHistoryTool,
   searchNotesTool,
   listTagsTool,
   listNotebooksTool,
