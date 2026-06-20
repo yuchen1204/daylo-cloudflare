@@ -148,6 +148,13 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `;
 
 let dbInitialized = false;
@@ -369,6 +376,87 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
   const userId = user.sub;
+
+  // Password update
+  if (path === '/api/auth/password' && method === 'PUT') {
+    const { currentPassword, newPassword } = await request.json<{ currentPassword: string; newPassword: string }>();
+
+    if (!currentPassword || !newPassword) {
+      return json({ error: 'Current password and new password required' }, 400);
+    }
+
+    if (newPassword.length < 6) {
+      return json({ error: 'New password must be at least 6 characters' }, 400);
+    }
+
+    // Get current password hash
+    const userRecord = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
+      .bind(userId)
+      .first<{ password_hash: string }>();
+
+    if (!userRecord) {
+      return json({ error: 'User not found' }, 404);
+    }
+
+    // Verify current password
+    const currentHash = await hashPassword(currentPassword);
+    if (currentHash !== userRecord.password_hash) {
+      return json({ error: 'Current password is incorrect' }, 401);
+    }
+
+    // Update to new password
+    const newHash = await hashPassword(newPassword);
+    await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .bind(newHash, userId)
+      .run();
+
+    return json({ success: true });
+  }
+
+  // Get API key
+  if (path === '/api/auth/api-key' && method === 'GET') {
+    const apiKey = await env.DB.prepare('SELECT id, key_hash, created_at FROM api_keys WHERE user_id = ?')
+      .bind(userId)
+      .first<{ id: string; key_hash: string; created_at: number }>();
+
+    if (!apiKey) {
+      return json({ key: null, createdAt: null });
+    }
+
+    // Return masked key (first 8 chars + dots)
+    const maskedKey = apiKey.key_hash.substring(0, 8) + '••••••••••••';
+    return json({ key: maskedKey, createdAt: apiKey.created_at });
+  }
+
+  // Generate new API key
+  if (path === '/api/auth/api-key' && method === 'POST') {
+    // Delete existing key if any
+    await env.DB.prepare('DELETE FROM api_keys WHERE user_id = ?')
+      .bind(userId)
+      .run();
+
+    // Generate new key
+    const rawKey = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const keyHash = await hashPassword(rawKey);
+
+    // Store hash
+    const keyId = crypto.randomUUID();
+    await env.DB.prepare('INSERT INTO api_keys (id, user_id, key_hash) VALUES (?, ?, ?)')
+      .bind(keyId, userId, keyHash)
+      .run();
+
+    // Return plain text key (shown once)
+    return json({ key: rawKey });
+  }
+
+  // Revoke API key
+  if (path === '/api/auth/api-key' && method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM api_keys WHERE user_id = ?')
+      .bind(userId)
+      .run();
+
+    return json({ success: true });
+  }
 
   // Notebooks CRUD
   if (path === '/api/notebooks') {
