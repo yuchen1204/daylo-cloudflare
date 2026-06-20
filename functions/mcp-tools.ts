@@ -137,6 +137,9 @@ const updateNoteTool: MCPTool = {
       title: { type: 'string', description: 'New title' },
       content: { type: 'string', description: 'New content' },
       tags: { type: 'array', items: { type: 'string' }, description: 'New tags' },
+      is_pinned: { type: 'boolean', description: 'Pin or unpin the note' },
+      notebook_id: { type: 'string', description: 'Move note to another notebook' },
+      format: { type: 'string', enum: ['markdown', 'txt', 'canvas', 'mindmap'], description: 'Change note format' },
     },
     required: ['note_id'],
   },
@@ -154,6 +157,9 @@ const updateNoteTool: MCPTool = {
         title = COALESCE(?, title),
         content = COALESCE(?, content),
         tags = COALESCE(?, tags),
+        is_pinned = COALESCE(?, is_pinned),
+        notebook_id = COALESCE(?, notebook_id),
+        format = COALESCE(?, format),
         updated_at = unixepoch()
       WHERE id = ? AND user_id = ?`
     )
@@ -161,6 +167,9 @@ const updateNoteTool: MCPTool = {
         input.title ?? null,
         input.content ?? null,
         input.tags ? JSON.stringify(input.tags) : null,
+        input.is_pinned !== undefined ? (input.is_pinned ? 1 : 0) : null,
+        input.notebook_id ?? null,
+        input.format ?? null,
         input.note_id,
         userId
       )
