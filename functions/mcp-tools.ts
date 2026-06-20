@@ -43,15 +43,20 @@ const listNotesTool: MCPTool = {
     properties: {
       notebook_id: { type: 'string', description: 'Filter by notebook ID' },
       tag: { type: 'string', description: 'Filter by tag' },
+      pinned_only: { type: 'boolean', description: 'If true, only return pinned notes' },
     },
   },
   handler: async (input, db, userId) => {
-    let query = 'SELECT id, title, format, tags, notebook_id, created_at, updated_at FROM notes WHERE user_id = ?';
+    let query = 'SELECT id, title, format, tags, notebook_id, is_pinned, created_at, updated_at FROM notes WHERE user_id = ?';
     const params: string[] = [userId];
 
     if (input.notebook_id) {
       query += ' AND notebook_id = ?';
       params.push(input.notebook_id as string);
+    }
+
+    if (input.pinned_only) {
+      query += ' AND is_pinned = 1';
     }
 
     const { results } = await db.prepare(query).bind(...params).all();
