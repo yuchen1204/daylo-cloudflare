@@ -13,6 +13,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [fullApiKey, setFullApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -70,6 +71,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
     setLoading(true);
     try {
       const newKey = await generateApiKey();
+      setFullApiKey(newKey);
       setApiKey(newKey.substring(0, 8) + '••••••••••••');
       setSuccess('API key generated. Copy it now - it won\'t be shown again.');
     } catch (err: any) {
@@ -80,8 +82,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
   };
 
   const handleCopyKey = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(apiKey);
+    if (fullApiKey) {
+      await navigator.clipboard.writeText(fullApiKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -92,6 +94,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
     try {
       await revokeApiKey();
       setApiKey(null);
+      setFullApiKey(null);
       setSuccess('API key revoked');
     } catch (err: any) {
       setError(err.message || 'Failed to revoke API key');
