@@ -79,10 +79,25 @@ async function authenticate(request: Request, env: Env): Promise<JwtPayload | nu
   return verifyJwt(auth.slice(7), env.JWT_SECRET);
 }
 
-function validateApiKey(request: Request, env: Env): boolean {
+async function validateApiKey(request: Request, env: Env, userId?: string): Promise<boolean> {
   const apiKey = request.headers.get('X-API-Key');
-  if (!apiKey || !env.MCP_API_KEY) return false;
-  return apiKey === env.MCP_API_KEY;
+  if (!apiKey) return false;
+  
+  // Check per-user API key in database
+  if (userId) {
+    const keyHash = await hashPassword(apiKey);
+    const existingKey = await env.DB.prepare('SELECT id FROM api_keys WHERE user_id = ? AND key_hash = ?')
+      .bind(userId, keyHash)
+      .first();
+    if (existingKey) return true;
+  }
+  
+  // Fallback to global MCP_API_KEY for backward compatibility
+  if (env.MCP_API_KEY && apiKey === env.MCP_API_KEY) {
+    return true;
+  }
+  
+  return false;
 }
 
 function createSSEStream(): { readable: ReadableStream; writer: WritableStreamDefaultWriter } {
@@ -238,7 +253,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // MCP SSE endpoint (no JWT auth, uses API key) - must be before auth check
   if (path === '/api/mcp/sse' && method === 'GET') {
-    if (!validateApiKey(request, env)) {
+    // Get userId from token if available
+    const authUser = await authenticate(request, env);
+    if (!await validateApiKey(request, env, authUser?.sub)) {
       return json({ error: 'Invalid API key' }, 401);
     }
 
@@ -262,7 +279,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // MCP Messages endpoint (no JWT auth, uses API key) - must be before auth check
   if (path === '/api/mcp/messages' && method === 'POST') {
-    if (!validateApiKey(request, env)) {
+    // Get userId from token if available
+    const authUser = await authenticate(request, env);
+    if (!await validateApiKey(request, env, authUser?.sub)) {
       return json({ error: 'Invalid API key' }, 401);
     }
 
