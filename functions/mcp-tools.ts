@@ -157,6 +157,16 @@ const updateNoteTool: MCPTool = {
       throw new Error('Note not found');
     }
 
+    // Validate notebook_id if provided
+    if (input.notebook_id) {
+      const notebook = await db.prepare('SELECT id FROM notebooks WHERE id = ? AND user_id = ?')
+        .bind(input.notebook_id, userId)
+        .first();
+      if (!notebook) {
+        throw new Error('Notebook not found');
+      }
+    }
+
     await db.prepare(
       `UPDATE notes SET
         title = COALESCE(?, title),
@@ -325,7 +335,7 @@ const searchNotesTool: MCPTool = {
   },
   handler: async (input, db, userId) => {
     const { results } = await db.prepare(
-      "SELECT id, title, content, format, tags, notebook_id, created_at, updated_at FROM notes WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)"
+      "SELECT id, title, content, format, tags, notebook_id, is_pinned, created_at, updated_at FROM notes WHERE user_id = ? AND (title LIKE ? OR content LIKE ?)"
     )
       .bind(userId, `%${input.query}%`, `%${input.query}%`)
       .all();
