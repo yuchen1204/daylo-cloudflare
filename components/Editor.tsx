@@ -82,7 +82,10 @@ const OldCodeBlock = ({ node, inline, className, children, ...props }) => {
 };
 
 
-import { auth, User, syncService } from '../services/firebase';
+interface User {
+  id: string;
+  email: string;
+}
 
 interface EditorProps {
   note: Note;

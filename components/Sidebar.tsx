@@ -27,7 +27,7 @@ import {
   Cloud,
   Download
 } from 'lucide-react';
-import { ShareModal } from './ShareModal';
+import { cloudSyncService } from '../services/cloudflare-sync';
 import { ConfirmModal } from './ConfirmModal';
 import { Share2 } from 'lucide-react';
 import { HistoryCompareModal } from './HistoryCompareModal';
@@ -52,8 +52,10 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { User } from 'firebase/auth'; // Added
-import { logout } from '../services/firebase'; // Added
+interface User {
+  id: string;
+  email: string;
+}
 
 interface SidebarProps {
   notebooks: Notebook[];
@@ -450,7 +452,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleLogout = async () => {
     try {
-      await logout();
+      cloudSyncService.logout();
       window.location.reload(); // Reload to clear state/sync context
     } catch (e) {
       console.error(e);
@@ -726,13 +728,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
            {user ? (
              <button onClick={() => setShowLogoutConfirm(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-2 overflow-hidden">
-                   {user.photoURL ? (
-                     <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full" />
-                   ) : (
-                     <UserIcon className="w-4 h-4" />
-                   )}
+                   <UserIcon className="w-4 h-4" />
                    <div className="flex flex-col items-start truncate">
-                      <span className="text-xs font-semibold">{user.displayName || user.email?.split('@')[0]}</span>
+                      <span className="text-xs font-semibold">{user.email?.split('@')[0]}</span>
                       <span className="text-[10px] text-emerald-500 flex items-center gap-1">
                         <Cloud className="w-3 h-3" /> Sync Active
                       </span>

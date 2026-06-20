@@ -19,9 +19,13 @@ import {
   updateNoteOrder,
   updateNotebookOrder
 } from './services/storage';
-import { auth, onAuthStateChanged, User, syncService } from './services/firebase';
-import { handleUserLogin } from './services/sync';
+import { cloudSyncService } from './services/cloudflare-sync';
 import { SpeedInsights } from "@vercel/speed-insights/react";
+
+interface User {
+  id: string;
+  email: string;
+}
 
 const AuthenticatedApp: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -101,103 +105,20 @@ const AuthenticatedApp: React.FC = () => {
     localStorage.setItem('pwa-banner-dismissed', 'true');
   };
 
-  // Auth Listener
+  // Auth Listener - check for existing token on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const currentUser = cloudSyncService.currentUser;
+    if (currentUser && cloudSyncService.isAuthenticated) {
       setUser(currentUser);
-      if (currentUser) {
-        try {
-          // Sync notes and notebooks
-          const newData = await handleUserLogin(currentUser);
-          setNotes(newData.notes);
-          setNotebooks(newData.notebooks);
-
-          // Sync user settings
-          const cloudSettings = await syncService.pullSettings(currentUser);
-          if (cloudSettings) {
-            // If cloud settings exist, merge them to ensure all keys are present
-            setSettings(prev => ({
-                ...prev,
-                ...cloudSettings,
-                markdown: { ...prev.markdown, ...(cloudSettings.markdown || {}) },
-                canvas: { ...prev.canvas, ...(cloudSettings.canvas || {}) },
-                mindmap: { ...prev.mindmap, ...(cloudSettings.mindmap || {}) }
-            }));
-          } else {
-            // If no cloud settings, push local settings to initialize
-            // Read fresh settings from storage to avoid using a stale closure value
-            syncService.pushSettings(currentUser, getStoredSettings());
-          }
-
-        } catch (e) {
-          console.error("Initial sync failed", e);
-        }
-      }
-    });
-    return () => unsubscribe();
+      cloudSyncService.handleLogin(currentUser).then(newData => {
+        setNotes(newData.notes);
+        setNotebooks(newData.notebooks);
+      }).catch(e => console.error("Initial sync failed", e));
+    }
   }, []);
 
-  // Real-time Sync Listeners
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubNotes = syncService.subscribeNotes(user, (cloudNotes) => {
-      setNotes(prev => {
-        const newNotes = [...prev];
-        let hasChanges = false;
-
-        cloudNotes.forEach((cNote: any) => {
-          const idx = newNotes.findIndex(n => n.id === cNote.id);
-          if (idx !== -1) {
-            if (cNote.updatedAt > newNotes[idx].updatedAt) {
-              newNotes[idx] = cNote as Note;
-              saveNote(cNote as Note);
-              hasChanges = true;
-            }
-          } else {
-            newNotes.push(cNote as Note);
-            saveNote(cNote as Note);
-            hasChanges = true;
-          }
-        });
-
-        return hasChanges ? newNotes : prev;
-      });
-    });
-
-    const unsubNotebooks = syncService.subscribeNotebooks(user, (cloudNotebooks) => {
-      setNotebooks(prev => {
-        const newNotebooks = [...prev];
-        let hasChanges = false;
-
-        cloudNotebooks.forEach((cNb: any) => {
-          if (!newNotebooks.find(n => n.id === cNb.id)) {
-            newNotebooks.push(cNb as Notebook);
-            saveNotebook(cNb as Notebook);
-            hasChanges = true;
-          }
-        });
-        return hasChanges ? newNotebooks : prev;
-      });
-    });
-
-    // Real-time settings listener
-    const unsubSettings = syncService.subscribeToSettings(user, (cloudSettings) => {
-        setSettings(prev => ({
-            ...prev,
-            ...cloudSettings,
-            markdown: { ...prev.markdown, ...(cloudSettings.markdown || {}) },
-            canvas: { ...prev.canvas, ...(cloudSettings.canvas || {}) },
-            mindmap: { ...prev.mindmap, ...(cloudSettings.mindmap || {}) }
-        }));
-    });
-
-    return () => {
-      unsubNotes();
-      unsubNotebooks();
-      unsubSettings();
-    };
-  }, [user]);
+  // No real-time sync listeners needed - cloudflare-sync uses REST API
+  // Sync happens on login and on each mutation
 
   // Load data from IndexedDB on mount
   useEffect(() => {
@@ -225,8 +146,15 @@ const AuthenticatedApp: React.FC = () => {
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
     saveSettingsToStorage(newSettings);
-    if (user) {
-      syncService.pushSettings(user, newSettings);
+    if (user && cloudSyncService.isAuthenticated) {
+      fetch(`${import.meta.env.VITE_API_BASE || 'https://daylo-api.YOUR_SUBDOMAIN.workers.dev'}/api/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('cf_auth_token')}`,
+        },
+        body: JSON.stringify(newSettings),
+      }).catch(e => console.error("Failed to sync settings", e));
     }
   };
 
@@ -242,8 +170,8 @@ const AuthenticatedApp: React.FC = () => {
     });
     await updateNoteOrder(newOrder);
 
-    if (user) {
-      newOrder.forEach(n => syncService.pushNote(user, n));
+    if (user && cloudSyncService.isAuthenticated) {
+      newOrder.forEach(n => cloudSyncService.updateNote(n));
     }
   };
 
@@ -251,7 +179,7 @@ const AuthenticatedApp: React.FC = () => {
     const newNotebook = createNewNotebook(name);
     setNotebooks(prev => [...prev, newNotebook]);
     await saveNotebook(newNotebook);
-    if (user) syncService.pushNotebook(user, newNotebook);
+    if (user && cloudSyncService.isAuthenticated) cloudSyncService.pushNotebook(newNotebook);
   };
 
   const handleDeleteNotebook = async (id: string) => {
@@ -262,9 +190,9 @@ const AuthenticatedApp: React.FC = () => {
        setActiveNoteId(null);
     }
     await deleteNotebook(id);
-    if (user) {
-      syncService.deleteNotebook(user, id);
-      notesToDelete.forEach(n => syncService.deleteNote(user, n.id));
+    if (user && cloudSyncService.isAuthenticated) {
+      cloudSyncService.deleteNotebook(id);
+      notesToDelete.forEach(n => cloudSyncService.deleteNote(n.id));
     }
   };
 
@@ -275,11 +203,11 @@ const AuthenticatedApp: React.FC = () => {
       else return;
     }
     const finalFormat = format || settings.defaultNoteFormat;
-    const newNote = createNewNote(notebookId, user.uid, finalFormat, title, content);
+    const newNote = createNewNote(notebookId, user.id, finalFormat, title, content);
     setNotes(prev => [newNote, ...prev]);
     setActiveNoteId(newNote.id);
     await saveNote(newNote);
-    if (user) syncService.pushNote(user, newNote);
+    if (user && cloudSyncService.isAuthenticated) cloudSyncService.pushNote(newNote);
 
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
@@ -289,7 +217,7 @@ const AuthenticatedApp: React.FC = () => {
   const handleUpdateNote = async (updatedNote: Note) => {
     setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
     await saveNote(updatedNote);
-    if (user) syncService.pushNote(user, updatedNote);
+    if (user && cloudSyncService.isAuthenticated) cloudSyncService.updateNote(updatedNote);
   };
 
   const handleDeleteNote = async (id: string) => {
@@ -301,7 +229,7 @@ const AuthenticatedApp: React.FC = () => {
       setActiveNoteId(siblings.length > 0 ? siblings[0].id : null);
     }
     await deleteNote(id);
-    if (user) syncService.deleteNote(user, id);
+    if (user && cloudSyncService.isAuthenticated) cloudSyncService.deleteNote(id);
   };
 
   const handleRestoreHistory = async (content: string) => {

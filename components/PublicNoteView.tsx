@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Note } from '../types';
-import { syncService } from '../services/firebase';
+import { cloudSyncService } from '../services/cloudflare-sync';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getTagColor } from '../constants';
@@ -24,9 +24,9 @@ export const PublicNoteView: React.FC = () => {
     const fetchNote = async () => {
       if (!linkId) return;
       try {
-        const data = await syncService.getPublicNote(linkId);
+        const data = await cloudSyncService.getPublicNote(linkId);
         if (data) {
-          setNote(data as Note);
+          setNote(data);
         } else {
           setError("Note not found or not shared.");
         }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Note, Permission } from '../types';
-import { syncService } from '../services/firebase';
-import { auth } from '../services/firebase';
+import { Note } from '../types';
+import { cloudSyncService } from '../services/cloudflare-sync';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -26,14 +25,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, note })
   if (!isOpen || !note) return null;
 
   const handleShareToggle = async () => {
-    const user = auth.currentUser;
-    if (!user || !note) return;
+    if (!cloudSyncService.isAuthenticated || !note) return;
 
     setIsLoading(true);
     const newIsPublic = !isPublic;
 
     try {
-        const linkId = await syncService.shareNote(user, note, newIsPublic);
+        const linkId = await cloudSyncService.shareNote(note, newIsPublic);
         setIsPublic(newIsPublic);
 
         if (newIsPublic && linkId) {
