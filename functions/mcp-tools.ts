@@ -235,6 +235,32 @@ const searchNotesTool: MCPTool = {
   },
 };
 
+const listTagsTool: MCPTool = {
+  name: 'list_tags',
+  description: 'List all unique tags across notes with counts',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+  },
+  handler: async (_input, db, userId) => {
+    const { results } = await db.prepare('SELECT tags FROM notes WHERE user_id = ?')
+      .bind(userId)
+      .all();
+
+    const counts = new Map<string, number>();
+    for (const row of results) {
+      const tags = JSON.parse((row as any).tags || '[]');
+      for (const tag of tags) {
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count);
+  },
+};
+
 const listNotebooksTool: MCPTool = {
   name: 'list_notebooks',
   description: 'List all notebooks',
@@ -345,6 +371,7 @@ export const mcpTools: MCPTool[] = [
   updateNoteTool,
   deleteNoteTool,
   searchNotesTool,
+  listTagsTool,
   listNotebooksTool,
   createNotebookTool,
   updateNotebookTool,
