@@ -242,6 +242,77 @@ const restoreNoteHistoryTool: MCPTool = {
   },
 };
 
+const DEFAULT_SETTINGS = {
+  defaultNoteFormat: 'markdown',
+  theme: 'light',
+  historySnapshotInterval: 120000,
+  markdown: { fontSize: 14, fontFamily: 'sans', lineHeight: 1.5 },
+  canvas: { gridSize: 20, showGrid: true, snapToGrid: true },
+  mindmap: { layout: 'radial', curveStyle: 'bezier' }
+};
+
+const getSettingsTool: MCPTool = {
+  name: 'get_settings',
+  description: 'Get user settings',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+  },
+  handler: async (_input, db, userId) => {
+    const row = await db.prepare('SELECT data FROM settings WHERE user_id = ?')
+      .bind(userId)
+      .first<{ data: string }>();
+    
+    if (!row) return DEFAULT_SETTINGS;
+    
+    const stored = JSON.parse(row.data);
+    return {
+      ...DEFAULT_SETTINGS,
+      ...stored,
+      markdown: { ...DEFAULT_SETTINGS.markdown, ...(stored.markdown || {}) },
+      canvas: { ...DEFAULT_SETTINGS.canvas, ...(stored.canvas || {}) },
+      mindmap: { ...DEFAULT_SETTINGS.mindmap, ...(stored.mindmap || {}) }
+    };
+  },
+};
+
+const updateSettingsTool: MCPTool = {
+  name: 'update_settings',
+  description: 'Update user settings (partial merge)',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      settings: { type: 'object', description: 'Partial settings to merge' },
+    },
+    required: ['settings'],
+  },
+  handler: async (input, db, userId) => {
+    const row = await db.prepare('SELECT data FROM settings WHERE user_id = ?')
+      .bind(userId)
+      .first<{ data: string }>();
+    
+    const current = row ? JSON.parse(row.data) : DEFAULT_SETTINGS;
+    const merged = {
+      ...current,
+      ...(input.settings as Record<string, unknown>),
+      markdown: { ...current.markdown, ...((input.settings as any).markdown || {}) },
+      canvas: { ...current.canvas, ...((input.settings as any).canvas || {}) },
+      mindmap: { ...current.mindmap, ...((input.settings as any).mindmap || {}) }
+    };
+
+    await db.prepare(
+      `INSERT INTO settings (user_id, data, updated_at)
+       VALUES (?, ?, unixepoch())
+       ON CONFLICT(user_id) DO UPDATE
+       SET data = ?, updated_at = unixepoch()`
+    )
+      .bind(userId, JSON.stringify(merged), JSON.stringify(merged))
+      .run();
+
+    return { success: true, settings: merged };
+  },
+};
+
 const searchNotesTool: MCPTool = {
   name: 'search_notes',
   description: 'Full-text search notes',
@@ -408,6 +479,8 @@ export const mcpTools: MCPTool[] = [
   createNotebookTool,
   updateNotebookTool,
   deleteNotebookTool,
+  getSettingsTool,
+  updateSettingsTool,
 ];
 
 export function getTool(name: string): MCPTool | undefined {
