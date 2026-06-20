@@ -110,7 +110,7 @@ export const Editor: React.FC<EditorProps> = ({
 }) => {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [tags, setTags] = useState<string[]>(note.tags || []);
+  const [tags, setTags] = useState<string[]>(Array.isArray(note.tags) ? note.tags : []);
   const [tagInput, setTagInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [selectedTagIndex, setSelectedTagIndex] = useState(0);
@@ -160,7 +160,7 @@ export const Editor: React.FC<EditorProps> = ({
   useEffect(() => {
     setTitle(note.title);
     setContent(note.content);
-    setTags(note.tags || []);
+    setTags(Array.isArray(note.tags) ? note.tags : []);
     setIsPreview(false);
     setIsSplitView(false); // Reset split view on note change
     setSlashMenu(prev => ({ ...prev, isOpen: false }));
