@@ -109,11 +109,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
 
   return (
     <div className="fixed inset-0 z-[10003] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-sm rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Profile</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Profile</h2>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-muted)' }}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -131,40 +132,44 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
               }}
             />
-            <div className="hidden w-12 h-12 rounded-full bg-indigo-500 items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+            <div className="hidden w-12 h-12 rounded-full bg-[var(--text-primary)] items-center justify-center">
+              <User className="w-6 h-6" style={{ color: 'var(--bg-primary)' }} />
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{user.email}</p>
+            <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
           </div>
 
           {/* Password Update Section */}
           <div className="space-y-2">
-            <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Password</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Password</h3>
             <input
               type="password"
               placeholder="Current"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:border-transparent"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
             />
             <input
               type="password"
               placeholder="New"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:border-transparent"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
             />
             <input
               type="password"
               placeholder="Confirm"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:border-transparent"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
             />
             <button
               onClick={handlePasswordUpdate}
               disabled={loading}
-              className="w-full px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-3 py-1.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
             >
               {loading ? 'Updating...' : 'Update'}
             </button>
@@ -172,18 +177,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
 
           {/* API Key Section */}
           <div className="space-y-2">
-            <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">MCP API Key</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>MCP API Key</h3>
             <div className="flex items-center gap-1.5">
               <input
                 type="text"
                 value={apiKey || 'No key configured'}
                 readOnly
-                className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono"
+                className="flex-1 px-2.5 py-1.5 text-xs border rounded-lg font-mono"
+                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
               />
               {apiKey && (
                 <button
                   onClick={handleCopyKey}
-                  className="p-1.5 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-[var(--interactive-hover)] rounded-lg transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
                   title="Copy"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -194,7 +201,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
               <button
                 onClick={handleGenerateApiKey}
                 disabled={loading}
-                className="flex-1 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 {apiKey ? 'Regenerate' : 'Generate'}

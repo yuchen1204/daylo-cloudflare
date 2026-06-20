@@ -53,6 +53,7 @@ export interface AppSettings {
   markdown: MarkdownSettings;
   canvas: CanvasSettings;
   mindmap: MindMapSettings;
+  activeNoteId?: string | null;
 }
 
 // --- New Permission Model Types (Phase 1) ---

@@ -312,7 +312,7 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-900 relative overflow-hidden select-none touch-none">
+    <div className="flex flex-col h-full w-full relative overflow-hidden select-none touch-none" style={{ background: 'var(--bg-secondary)' }}>
       
       {/* Main Canvas Area */}
       <div 
@@ -356,8 +356,8 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
               data-node-id={node.id}
               className={`absolute rounded-xl shadow-sm border transition-colors duration-200 flex items-center justify-center pointer-events-auto
                 ${selectedNodeId === node.id 
-                  ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-200 dark:bg-indigo-900/40 dark:border-indigo-400 dark:text-indigo-100 dark:ring-indigo-900' 
-                  : 'bg-white border-slate-200 hover:border-indigo-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
+                  ? 'bg-[var(--interactive-active)] border-[var(--text-muted)] ring-2 ring-[var(--border-primary)]' 
+                  : 'border-[var(--border-primary)] hover:border-[var(--text-muted)]'
                 }
               `}
               style={{
@@ -367,6 +367,8 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
                 maxWidth: '250px',
                 minHeight: '40px',
                 padding: '8px 16px',
+                background: selectedNodeId === node.id ? undefined : 'var(--bg-primary)',
+                color: 'var(--text-primary)',
                 zIndex: 10
               }}
               onDoubleClick={(e) => { 
@@ -384,12 +386,13 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
                     setEditingNodeId(null);
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                  className="bg-transparent outline-none text-center w-full text-sm font-medium text-slate-900 dark:text-slate-100"
+                  className="bg-transparent outline-none text-center w-full text-sm font-medium"
+                style={{ color: 'var(--text-primary)' }}
                   // Stop propagation to prevent dragging while typing
                   onPointerDown={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 text-center pointer-events-none">
+                <span className="text-sm font-medium text-center pointer-events-none" style={{ color: 'var(--text-primary)' }}>
                   {node.label}
                 </span>
               )}
@@ -402,16 +405,25 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
       
       {/* Zoom Controls */}
       <div className="absolute bottom-24 right-6 flex flex-col gap-2 z-20 md:bottom-6">
-         <div className="bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 flex flex-col gap-1">
-            <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400">
-               <Plus className="w-5 h-5" />
-            </button>
-            <div className="h-px bg-slate-100 dark:bg-slate-700 mx-1" />
-            <button onClick={() => setScale(s => Math.max(s - 0.1, 0.2))} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400">
+          <div className="p-1.5 rounded-xl shadow-lg border flex flex-col gap-1"
+               style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-primary)' }}>
+             <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className="p-2 hover:bg-[var(--interactive-hover)] rounded-lg" style={{ color: 'var(--text-muted)' }}>
+               <ZoomIn className="w-4 h-4" />
+             </button>
+             <div className="h-px mx-1" style={{ background: 'var(--border-subtle)' }} />
+             <button onClick={() => setScale(s => Math.max(s - 0.1, 0.2))} className="p-2 hover:bg-[var(--interactive-hover)] rounded-lg" style={{ color: 'var(--text-muted)' }}>
+               <ZoomOut className="w-4 h-4" />
+             </button>
+             <div className="h-px mx-1" style={{ background: 'var(--border-subtle)' }} />
+             <button onClick={centerRoot} className="p-2 hover:bg-[var(--interactive-hover)] rounded-lg" style={{ color: 'var(--text-muted)' }} title="Reset View">
+               <Locate className="w-4 h-4" />
+             </button>
+            <div className="h-px mx-1" style={{ background: 'var(--border-subtle)' }} />
+            <button onClick={() => setScale(s => Math.max(s - 0.1, 0.2))} className="p-2 hover:bg-[var(--interactive-hover)] rounded-lg" style={{ color: 'var(--text-muted)' }}>
                <Minus className="w-5 h-5" />
             </button>
-            <div className="h-px bg-slate-100 dark:bg-slate-700 mx-1" />
-            <button onClick={centerRoot} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400" title="Reset View">
+            <div className="h-px mx-1" style={{ background: 'var(--border-subtle)' }} />
+            <button onClick={centerRoot} className="p-2 hover:bg-[var(--interactive-hover)] rounded-lg" style={{ color: 'var(--text-muted)' }} title="Reset View">
                <Move className="w-5 h-5" />
             </button>
          </div>
@@ -421,49 +433,56 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
       {selectedNode && !readOnly && (
         <div 
            className={`
-             absolute z-30 flex items-center gap-1 p-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 animate-in fade-in duration-200
+             absolute z-30 flex items-center gap-1 p-2 backdrop-blur-md rounded-2xl shadow-xl animate-in fade-in duration-200
              ${isMobile 
                 ? 'bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm justify-between' 
                 : ''
              }
            `}
-           style={!isMobile ? {
-             left: selectedNode.x * scale + offset.x + (140 * scale), 
-             top: selectedNode.y * scale + offset.y,
-             transform: 'translateY(-50%)'
-           } : {}}
+           style={{
+             background: 'rgba(255,255,255,0.9)',
+             border: '1px solid var(--border-primary)',
+             ...(!isMobile ? {
+               left: selectedNode.x * scale + offset.x + (140 * scale), 
+               top: selectedNode.y * scale + offset.y,
+               transform: 'translateY(-50%)'
+             } : {})
+           }}
            // Prevent canvas interaction when clicking toolbar
            onPointerDown={(e) => e.stopPropagation()}
         >
            <button 
              onClick={addChildNode} 
-             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1"
+             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-[var(--interactive-hover)] transition-colors flex-1"
+             style={{ color: 'var(--text-secondary)' }}
            >
               <GitCommitHorizontal className="w-5 h-5" />
               <span className="text-[10px] font-medium mt-1">Child</span>
            </button>
            
-           <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+           <div className="w-px h-8" style={{ background: 'var(--border-primary)' }}></div>
 
            <button 
              onClick={addSiblingNode} 
-             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1"
+             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-[var(--interactive-hover)] transition-colors flex-1"
+             style={{ color: 'var(--text-secondary)' }}
            >
               <CornerDownRight className="w-5 h-5" />
               <span className="text-[10px] font-medium mt-1">Sibling</span>
            </button>
 
-           <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+           <div className="w-px h-8" style={{ background: 'var(--border-primary)' }}></div>
 
            <button 
              onClick={() => setEditingNodeId(selectedNode.id)} 
-             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1"
+             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-[var(--interactive-hover)] transition-colors flex-1"
+             style={{ color: 'var(--text-secondary)' }}
            >
               <Edit2 className="w-5 h-5" />
               <span className="text-[10px] font-medium mt-1">Edit</span>
            </button>
 
-           <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+           <div className="w-px h-8" style={{ background: 'var(--border-primary)' }}></div>
 
            <button 
              onClick={deleteSelectedNode} 
@@ -475,10 +494,11 @@ export const MindMapEditor: React.FC<MindMapEditorProps> = ({ content, onChange,
 
            {isMobile && (
              <>
-               <div className="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+               <div className="w-px h-8" style={{ background: 'var(--border-primary)' }}></div>
                <button 
                  onClick={() => setSelectedNodeId(null)}
-                 className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition-colors flex-1"
+                 className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-[var(--interactive-hover)] transition-colors flex-1"
+                 style={{ color: 'var(--text-muted)' }}
                >
                   <X className="w-5 h-5" />
                   <span className="text-[10px] font-medium mt-1">Close</span>

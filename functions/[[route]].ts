@@ -631,14 +631,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (method === 'POST') {
       const body = await request.json<{
         id: string; notebook_id: string; title: string; content: string;
-        format?: string; tags?: string[]; is_public?: boolean; public_link_id?: string;
+        format?: string; tags?: string | string[]; is_public?: boolean; public_link_id?: string;
       }>();
+      const tagsStr = typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags || []);
       await env.DB.prepare(
         'INSERT INTO notes (id, user_id, notebook_id, title, content, format, tags, is_public, public_link_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       )
         .bind(
           body.id, userId, body.notebook_id, body.title, body.content,
-          body.format || 'markdown', JSON.stringify(body.tags || []),
+          body.format || 'markdown', tagsStr,
           body.is_public ? 1 : 0, body.public_link_id || null
         )
         .run();
@@ -655,8 +656,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (method === 'PUT') {
       const body = await request.json<{
         title?: string; content?: string; format?: string;
-        tags?: string[]; is_public?: boolean; public_link_id?: string | null; notebook_id?: string;
+        tags?: string | string[]; is_public?: boolean; public_link_id?: string | null; notebook_id?: string;
       }>();
+      const tagsStr = body.tags !== undefined ? (typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags)) : null;
       await env.DB.prepare(
         `UPDATE notes SET
           title = COALESCE(?, title),
@@ -671,7 +673,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       )
         .bind(
           body.title ?? null, body.content ?? null, body.format ?? null,
-          body.tags ? JSON.stringify(body.tags) : null,
+          tagsStr,
           body.is_public !== undefined ? (body.is_public ? 1 : 0) : null,
           body.public_link_id !== undefined ? body.public_link_id : undefined,
           body.notebook_id ?? null,
@@ -740,6 +742,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     if (body.notes) {
       for (const note of body.notes) {
+        const tagsStr = typeof note.tags === 'string' ? note.tags : JSON.stringify(note.tags || []);
         stmts.push(
           env.DB.prepare(
             `INSERT INTO notes (id, user_id, notebook_id, title, content, format, tags, is_public, public_link_id, updated_at)
@@ -750,9 +753,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           )
             .bind(
               note.id, userId, note.notebook_id, note.title, note.content,
-              note.format || 'markdown', JSON.stringify(note.tags || []),
+              note.format || 'markdown', tagsStr,
               note.is_public ? 1 : 0, note.public_link_id || null, note.updated_at || Date.now(),
-              note.title, note.content, note.format || 'markdown', JSON.stringify(note.tags || []),
+              note.title, note.content, note.format || 'markdown', tagsStr,
               note.is_public ? 1 : 0, note.public_link_id || null, note.notebook_id, note.updated_at || Date.now()
             )
         );

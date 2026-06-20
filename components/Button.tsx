@@ -18,9 +18,9 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
-    primary: "bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-500",
-    secondary: "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700",
-    ghost: "bg-transparent hover:bg-slate-100 text-slate-600 focus:ring-slate-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+    primary: "bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 focus:ring-[var(--text-muted)]",
+    secondary: "border hover:bg-[var(--interactive-hover)] focus:ring-[var(--text-muted)]",
+    ghost: "bg-transparent hover:bg-[var(--interactive-hover)] focus:ring-[var(--text-muted)]",
     danger: "bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-500 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
   };
 
@@ -30,9 +30,16 @@ export const Button: React.FC<ButtonProps> = ({
     lg: "px-6 py-3 text-base"
   };
 
+  const variantStyles = variant === 'secondary' 
+    ? { borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }
+    : variant === 'ghost'
+    ? { color: 'var(--text-secondary)' }
+    : undefined;
+
   return (
     <button 
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      style={variantStyles}
       disabled={isLoading || props.disabled}
       {...props}
     >

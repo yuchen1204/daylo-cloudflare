@@ -37,12 +37,19 @@ function createChunkedResult(data: unknown): { chunks: string[]; final: MCPToolR
 
 const listNotesTool: MCPTool = {
   name: 'list_notes',
-  description: 'List all notes, optionally filtered by notebook, tag, or pinned status',
+  description: `List all notes in the user's library. Returns note metadata including id, title, format, tags, notebook_id, pin status, and timestamps.
+
+Optional filters:
+- notebook_id: Only return notes in a specific notebook
+- tag: Only return notes with a specific tag
+- pinned_only: If true, only return notes that are pinned
+
+Note formats: "markdown" (rich text), "txt" (plain text), "canvas" (drawing), "mindmap" (visual mind map).`,
   inputSchema: {
     type: 'object',
     properties: {
       notebook_id: { type: 'string', description: 'Filter by notebook ID' },
-      tag: { type: 'string', description: 'Filter by tag' },
+      tag: { type: 'string', description: 'Filter by tag name' },
       pinned_only: { type: 'boolean', description: 'If true, only return pinned notes' },
     },
   },
@@ -74,11 +81,17 @@ const listNotesTool: MCPTool = {
 
 const getNoteTool: MCPTool = {
   name: 'get_note',
-  description: 'Get a single note by ID',
+  description: `Get a single note by ID, including full content. Returns all note fields: id, title, content, format, tags, notebook_id, is_pinned, created_at, updated_at.
+
+Content format depends on note type:
+- "markdown": Markdown text string
+- "txt": Plain text string
+- "canvas": JSON array of drawing strokes
+- "mindmap": JSON array of mind map nodes`,
   inputSchema: {
     type: 'object',
     properties: {
-      note_id: { type: 'string', description: 'Note ID' },
+      note_id: { type: 'string', description: 'Note ID to retrieve' },
     },
     required: ['note_id'],
   },
@@ -97,15 +110,43 @@ const getNoteTool: MCPTool = {
 
 const createNoteTool: MCPTool = {
   name: 'create_note',
-  description: 'Create a new note',
+  description: `Create a new note. If notebook_id is not provided, the note is created in the first available notebook.
+
+FORMAT OPTIONS:
+
+1. "markdown" (default) - Rich text with Markdown syntax
+   Content: Markdown text string
+   Example: "# Hello\\n\\nThis is **bold** and *italic* text."
+
+2. "txt" - Plain text, no formatting
+   Content: Raw text string
+   Example: "Just plain text here."
+
+3. "canvas" - Drawing/whiteboard for sketches and diagrams
+   Content: JSON array of stroke objects (or "[]" for empty canvas)
+   Stroke format: {"points":[{"x":100,"y":100},{"x":200,"y":200}],"color":"#000000","width":3,"type":"pen"}
+   - type: "pen" (drawing) or "eraser" (erase)
+   - color: Hex color string
+   - width: Stroke width in pixels
+   - points: Array of {x, y} coordinates
+
+4. "mindmap" - Visual mind map for brainstorming and organizing ideas
+   Content: JSON array of node objects
+   Node format: {"id":"unique-id","text":"Topic","x":400,"y":300,"children":["child-id"],"parentId":null,"color":"#3b82f6"}
+   - id: Unique identifier for the node
+   - text: Display text
+   - x, y: Position coordinates
+   - children: Array of child node IDs
+   - parentId: Parent node ID (null for root)
+   - color: Hex color string`,
   inputSchema: {
     type: 'object',
     properties: {
       title: { type: 'string', description: 'Note title' },
-      content: { type: 'string', description: 'Note content' },
-      format: { type: 'string', enum: ['markdown', 'txt', 'canvas', 'mindmap'], description: 'Note format' },
-      notebook_id: { type: 'string', description: 'Notebook ID' },
-      tags: { type: 'array', items: { type: 'string' }, description: 'Tags' },
+      content: { type: 'string', description: 'Note content (format depends on note type)' },
+      format: { type: 'string', enum: ['markdown', 'txt', 'canvas', 'mindmap'], description: 'Note format: markdown, txt, canvas, or mindmap' },
+      notebook_id: { type: 'string', description: 'Notebook ID (optional, uses first available notebook if not provided)' },
+      tags: { type: 'array', items: { type: 'string' }, description: 'Tags for organizing notes' },
     },
     required: ['title', 'content'],
   },
@@ -134,15 +175,28 @@ const createNoteTool: MCPTool = {
 
 const updateNoteTool: MCPTool = {
   name: 'update_note',
-  description: 'Update an existing note (title, content, tags, pin status, notebook, format)',
+  description: `Update an existing note. Only provided fields will be updated - existing values are preserved (COALESCE).
+
+Use this to:
+- Edit note content or title
+- Add/remove tags
+- Pin or unpin a note
+- Move a note to a different notebook
+- Change the note format (warning: this changes the content structure)
+
+CONTENT FORMAT (by note type):
+- "markdown": Markdown text string
+- "txt": Plain text string
+- "canvas": JSON array of stroke objects: [{"points":[{"x":100,"y":100}],"color":"#000000","width":3,"type":"pen"}]
+- "mindmap": JSON array of node objects: [{"id":"node-1","text":"Topic","x":400,"y":300,"children":[],"parentId":null,"color":"#3b82f6"}]`,
   inputSchema: {
     type: 'object',
     properties: {
-      note_id: { type: 'string', description: 'Note ID' },
+      note_id: { type: 'string', description: 'Note ID to update' },
       title: { type: 'string', description: 'New title' },
-      content: { type: 'string', description: 'New content' },
-      tags: { type: 'array', items: { type: 'string' }, description: 'New tags' },
-      is_pinned: { type: 'boolean', description: 'Pin or unpin the note' },
+      content: { type: 'string', description: 'New content (format depends on note type)' },
+      tags: { type: 'array', items: { type: 'string' }, description: 'Tags (replaces existing tags)' },
+      is_pinned: { type: 'boolean', description: 'Pin (true) or unpin (false) the note' },
       notebook_id: { type: 'string', description: 'Move note to another notebook' },
       format: { type: 'string', enum: ['markdown', 'txt', 'canvas', 'mindmap'], description: 'Change note format' },
     },
@@ -196,11 +250,13 @@ const updateNoteTool: MCPTool = {
 
 const deleteNoteTool: MCPTool = {
   name: 'delete_note',
-  description: 'Delete a note',
+  description: `Permanently delete a note. This action cannot be undone.
+
+The note must belong to the user. If the note is pinned, it will be unpinned automatically before deletion.`,
   inputSchema: {
     type: 'object',
     properties: {
-      note_id: { type: 'string', description: 'Note ID' },
+      note_id: { type: 'string', description: 'Note ID to delete' },
     },
     required: ['note_id'],
   },
@@ -223,12 +279,18 @@ const deleteNoteTool: MCPTool = {
 
 const restoreNoteHistoryTool: MCPTool = {
   name: 'restore_note_history',
-  description: 'Restore a note to specific content',
+  description: `Restore a note's content to a specific version. This creates a new history entry with the provided content.
+
+Use this to undo changes or revert to a previous version of a note. The content must match the note's format:
+- "markdown": Markdown text
+- "txt": Plain text
+- "canvas": JSON array of strokes
+- "mindmap": JSON array of nodes`,
   inputSchema: {
     type: 'object',
     properties: {
-      note_id: { type: 'string', description: 'Note ID' },
-      content: { type: 'string', description: 'Content to restore' },
+      note_id: { type: 'string', description: 'Note ID to restore' },
+      content: { type: 'string', description: 'Content to restore to' },
     },
     required: ['note_id', 'content'],
   },
@@ -263,7 +325,15 @@ const DEFAULT_SETTINGS = {
 
 const getSettingsTool: MCPTool = {
   name: 'get_settings',
-  description: 'Get user settings',
+  description: `Get the user's current settings. Returns the full settings object with defaults applied.
+
+Settings structure:
+- defaultNoteFormat: Default format for new notes ("markdown", "txt", "canvas", or "mindmap")
+- theme: UI theme ("light" or "dark")
+- historySnapshotInterval: How often to save history snapshots (in milliseconds)
+- markdown: Markdown editor settings (fontSize, fontFamily, lineHeight)
+- canvas: Canvas editor settings (gridSize, showGrid, snapToGrid)
+- mindmap: Mind map settings (layout: "radial"|"horizontal"|"vertical", curveStyle: "straight"|"step"|"bezier")`,
   inputSchema: {
     type: 'object',
     properties: {},
@@ -288,11 +358,17 @@ const getSettingsTool: MCPTool = {
 
 const updateSettingsTool: MCPTool = {
   name: 'update_settings',
-  description: 'Update user settings (partial merge)',
+  description: `Update user settings. Only provided fields will be merged - existing settings are preserved.
+
+Example updates:
+- Change default note format: {"defaultNoteFormat": "canvas"}
+- Change markdown font size: {"markdown": {"fontSize": 16}}
+- Change mind map layout: {"mindmap": {"layout": "horizontal"}}
+- Change theme: {"theme": "dark"}`,
   inputSchema: {
     type: 'object',
     properties: {
-      settings: { type: 'object', description: 'Partial settings to merge' },
+      settings: { type: 'object', description: 'Partial settings object to merge with existing settings' },
     },
     required: ['settings'],
   },
@@ -325,11 +401,15 @@ const updateSettingsTool: MCPTool = {
 
 const searchNotesTool: MCPTool = {
   name: 'search_notes',
-  description: 'Full-text search notes',
+  description: `Search across all notes by title and content. Returns matching notes with metadata.
+
+The search is case-insensitive and matches partial strings. For example, searching "react" will find notes containing "React", "react hooks", "reaction", etc.
+
+Use this to find notes on a specific topic or keyword.`,
   inputSchema: {
     type: 'object',
     properties: {
-      query: { type: 'string', description: 'Search query' },
+      query: { type: 'string', description: 'Search query string' },
     },
     required: ['query'],
   },
@@ -349,7 +429,9 @@ const searchNotesTool: MCPTool = {
 
 const listTagsTool: MCPTool = {
   name: 'list_tags',
-  description: 'List all unique tags across notes with counts',
+  description: `List all unique tags used across all notes, sorted by frequency (most used first).
+
+Returns an array of objects with "tag" (tag name) and "count" (number of notes using this tag). Useful for understanding the user's tagging system and finding common topics.`,
   inputSchema: {
     type: 'object',
     properties: {},
@@ -375,7 +457,9 @@ const listTagsTool: MCPTool = {
 
 const listNotebooksTool: MCPTool = {
   name: 'list_notebooks',
-  description: 'List all notebooks',
+  description: `List all notebooks in the user's library. Notebooks are used to organize notes into groups.
+
+Returns notebook metadata: id, name, created_at. Notebooks can contain notes of any format (markdown, txt, canvas, mindmap).`,
   inputSchema: {
     type: 'object',
     properties: {},
@@ -390,11 +474,13 @@ const listNotebooksTool: MCPTool = {
 
 const createNotebookTool: MCPTool = {
   name: 'create_notebook',
-  description: 'Create a new notebook',
+  description: `Create a new notebook to organize notes. Notebooks are like folders that contain notes.
+
+Every user has a default "Default" notebook. Create additional notebooks to categorize notes by topic, project, or any other system.`,
   inputSchema: {
     type: 'object',
     properties: {
-      name: { type: 'string', description: 'Notebook name' },
+      name: { type: 'string', description: 'Notebook name (e.g. "Work", "Personal", "Project Ideas")' },
     },
     required: ['name'],
   },
@@ -409,14 +495,19 @@ const createNotebookTool: MCPTool = {
 
 const updateNotebookTool: MCPTool = {
   name: 'update_notebook',
-  description: 'Update notebook name, color, or icon',
+  description: `Update a notebook's properties. All fields except notebook_id are optional - only provided fields will be updated.
+
+Properties:
+- name: Notebook display name
+- color: Hex color code for the notebook icon (e.g. "#ff0000" for red, "#3b82f6" for blue)
+- icon: Icon identifier (lucide-react icon name, e.g. "Folder", "Book", "Code", "Heart", "Star")`,
   inputSchema: {
     type: 'object',
     properties: {
-      notebook_id: { type: 'string', description: 'Notebook ID' },
+      notebook_id: { type: 'string', description: 'Notebook ID to update' },
       name: { type: 'string', description: 'New notebook name' },
       color: { type: 'string', description: 'Hex color code (e.g. "#ff0000")' },
-      icon: { type: 'string', description: 'Icon identifier' },
+      icon: { type: 'string', description: 'Icon identifier (lucide-react icon name)' },
     },
     required: ['notebook_id'],
   },
@@ -451,11 +542,13 @@ const updateNotebookTool: MCPTool = {
 
 const deleteNotebookTool: MCPTool = {
   name: 'delete_notebook',
-  description: 'Delete a notebook',
+  description: `Permanently delete a notebook. This action cannot be undone.
+
+WARNING: All notes inside this notebook will also be deleted. Make sure to move or export important notes before deleting.`,
   inputSchema: {
     type: 'object',
     properties: {
-      notebook_id: { type: 'string', description: 'Notebook ID' },
+      notebook_id: { type: 'string', description: 'Notebook ID to delete' },
     },
     required: ['notebook_id'],
   },
@@ -476,6 +569,69 @@ const deleteNotebookTool: MCPTool = {
   },
 };
 
+const shareNoteTool: MCPTool = {
+  name: 'share_note',
+  description: `Make a note publicly accessible via a share link. Returns the share URL.
+
+The note will be viewable by anyone with the link. The public page shows the note title, content, tags, and last updated date (no editing).`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      note_id: { type: 'string', description: 'Note ID to share' },
+    },
+    required: ['note_id'],
+  },
+  handler: async (input, db, userId) => {
+    const existing = await db.prepare('SELECT id, public_link_id FROM notes WHERE id = ? AND user_id = ?')
+      .bind(input.note_id, userId)
+      .first<{ id: string; public_link_id: string | null }>();
+
+    if (!existing) {
+      throw new Error('Note not found');
+    }
+
+    const linkId = existing.public_link_id || crypto.randomUUID();
+
+    await db.prepare(
+      'UPDATE notes SET is_public = 1, public_link_id = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?'
+    )
+      .bind(linkId, input.note_id, userId)
+      .run();
+
+    const shareUrl = `https://daylo-app.pages.dev/share/${linkId}`;
+    return { success: true, share_url: shareUrl, link_id: linkId };
+  },
+};
+
+const unshareNoteTool: MCPTool = {
+  name: 'unshare_note',
+  description: `Make a note private by disabling its public share link. The note will no longer be accessible via the share URL.`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      note_id: { type: 'string', description: 'Note ID to make private' },
+    },
+    required: ['note_id'],
+  },
+  handler: async (input, db, userId) => {
+    const existing = await db.prepare('SELECT id FROM notes WHERE id = ? AND user_id = ?')
+      .bind(input.note_id, userId)
+      .first();
+
+    if (!existing) {
+      throw new Error('Note not found');
+    }
+
+    await db.prepare(
+      'UPDATE notes SET is_public = 0, public_link_id = NULL, updated_at = unixepoch() WHERE id = ? AND user_id = ?'
+    )
+      .bind(input.note_id, userId)
+      .run();
+
+    return { success: true, message: 'Note is now private' };
+  },
+};
+
 export const mcpTools: MCPTool[] = [
   listNotesTool,
   getNoteTool,
@@ -485,6 +641,8 @@ export const mcpTools: MCPTool[] = [
   restoreNoteHistoryTool,
   searchNotesTool,
   listTagsTool,
+  shareNoteTool,
+  unshareNoteTool,
   listNotebooksTool,
   createNotebookTool,
   updateNotebookTool,

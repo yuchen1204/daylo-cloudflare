@@ -54,29 +54,31 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, note })
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Share "{note.title}"</h2>
+      <div className="rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}
+           style={{ background: 'var(--bg-primary)' }}>
+        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Share "{note.title}"</h2>
 
         <div className="flex items-center justify-between py-4">
-          <span className="text-slate-700 dark:text-slate-300">Public Link</span>
+          <span style={{ color: 'var(--text-secondary)' }}>Public Link</span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={isPublic} onChange={handleShareToggle} className="sr-only peer" disabled={isLoading} />
-            <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+            <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"
+                 style={{ background: isPublic ? 'var(--text-primary)' : 'var(--bg-tertiary)' }}></div>
           </label>
         </div>
 
         {isPublic && (
-          <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-700 rounded-md">
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">Anyone with the link can view this note.</p>
+          <div className="mt-4 p-3 rounded-md" style={{ background: 'var(--bg-secondary)' }}>
+            <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Anyone with the link can view this note.</p>
             <div className="flex items-center gap-2">
-              <input type="text" readOnly value={publicLink} className="w-full bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-md p-2 text-sm" />
-              <button onClick={copyToClipboard} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm">Copy</button>
+              <input type="text" readOnly value={publicLink} className="w-full border rounded-md p-2 text-sm" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }} />
+              <button onClick={copyToClipboard} className="px-4 py-2 rounded-md text-sm" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>Copy</button>
             </div>
           </div>
         )}
 
         <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-md">Done</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-md" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>Done</button>
         </div>
       </div>
     </div>

@@ -39,13 +39,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
   return (
     <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
         
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
             {isRegistering ? "Create Account" : "Sign In"}
           </h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-muted)' }}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -59,28 +60,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
           <form onSubmit={handleEmailAuth} className="flex flex-col gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</label>
+              <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 <input 
                   type="email" 
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-200"
+                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)]"
+                  style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
                   placeholder="name@example.com"
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Password</label>
+              <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Password</label>
               <input 
                 type="password" 
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-200"
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)]"
+                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
                 placeholder="••••••••"
               />
             </div>
@@ -88,13 +91,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
             <button 
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="mt-2 w-full py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
             >
               {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Sign In')}
             </button>
           </form>
 
-          <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
             {isRegistering ? "Already have an account? " : "Don't have an account? "}
             <button 
               onClick={() => { setIsRegistering(!isRegistering); setError(null); }}

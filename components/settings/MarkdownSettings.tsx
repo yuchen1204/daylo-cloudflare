@@ -16,7 +16,7 @@ const fontOptions: SelectOption[] = [
 export const MarkdownSettings: React.FC<MarkdownSettingsProps> = ({ localSettings, updateNested }) => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2">Markdown Editor</h3>
+      <h3 className="text-lg font-medium border-b pb-2" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}>Markdown Editor</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CustomSelect
@@ -27,22 +27,22 @@ export const MarkdownSettings: React.FC<MarkdownSettingsProps> = ({ localSetting
         />
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Font Size ({localSettings.markdown.fontSize}px)</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Font Size ({localSettings.markdown.fontSize}px)</label>
           <input
             type="range" min="12" max="24" step="1"
             value={localSettings.markdown.fontSize}
             onChange={(e) => updateNested('markdown', 'fontSize', parseInt(e.target.value))}
-            className="w-full accent-indigo-600"
+            className="w-full"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Line Height ({localSettings.markdown.lineHeight})</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Line Height ({localSettings.markdown.lineHeight})</label>
           <input
             type="range" min="1.0" max="2.0" step="0.1"
             value={localSettings.markdown.lineHeight}
             onChange={(e) => updateNested('markdown', 'lineHeight', parseFloat(e.target.value))}
-            className="w-full accent-indigo-600"
+            className="w-full"
           />
         </div>
       </div>

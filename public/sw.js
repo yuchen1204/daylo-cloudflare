@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daylo-v6';
+const CACHE_NAME = 'daylo-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -27,7 +27,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
 
   // Don't cache hashed assets (Vite handles cache busting via filenames)
-  if (url.pathname.match(/\.[a-zA-Z0-9]{8,}\.(js|css)$/)) return;
+  if (url.pathname.match(/\.[a-zA-Z0-9-]{8,}\.(js|css)$/)) return;
 
   event.respondWith(
     (async () => {

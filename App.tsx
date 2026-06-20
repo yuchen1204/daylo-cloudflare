@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Note, Notebook, AppSettings, NoteFormat, NoteHistoryEntry } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Editor } from './components/Editor';
 import { SettingsModal } from './components/SettingsModal';
 import { PublicNoteView } from './components/PublicNoteView';
+import { useKeyboardShortcuts, ShortcutConfig } from './hooks/useKeyboardShortcuts';
+import { ShortcutsHelp } from './components/ShortcutsHelp';
 import {
   initializeData,
   saveNote,
@@ -30,7 +32,7 @@ interface User {
 const AuthenticatedApp: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(getStoredSettings().activeNoteId ?? null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -51,6 +53,9 @@ const AuthenticatedApp: React.FC = () => {
   // Key to force re-mounting editor when content is restored externally
   const [editorKey, setEditorKey] = useState(0);
 
+  // Keyboard Shortcuts
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
   // Compute all unique tags for autocomplete
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -69,6 +74,15 @@ const AuthenticatedApp: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [settings.theme]);
+
+  // Save activeNoteId to settings when it changes
+  useEffect(() => {
+    if (activeNoteId !== settings.activeNoteId) {
+      const newSettings = { ...settings, activeNoteId };
+      setSettings(newSettings);
+      saveSettingsToStorage(newSettings);
+    }
+  }, [activeNoteId]);
 
   // Handle PWA Installation
   useEffect(() => {
@@ -110,9 +124,12 @@ const AuthenticatedApp: React.FC = () => {
     setUser(user);
     try {
       const newData = await cloudSyncService.handleLogin(user);
-      setNotes(newData.notes);
+      setNotes(newData.notes.map(n => ({ ...n, tags: Array.isArray(n.tags) ? n.tags : [] })));
       setNotebooks(newData.notebooks);
-      if (newData.notes.length > 0) {
+      // Only set active note if saved one doesn't exist in loaded notes
+      const savedId = getStoredSettings().activeNoteId;
+      const savedNoteExists = savedId && newData.notes.some(n => n.id === savedId);
+      if (!savedNoteExists && newData.notes.length > 0) {
         setActiveNoteId(newData.notes[0].id);
       }
     } catch (e) {
@@ -126,7 +143,7 @@ const AuthenticatedApp: React.FC = () => {
     if (currentUser && cloudSyncService.isAuthenticated) {
       setUser(currentUser);
       cloudSyncService.handleLogin(currentUser).then(newData => {
-        setNotes(newData.notes);
+        setNotes(newData.notes.map(n => ({ ...n, tags: Array.isArray(n.tags) ? n.tags : [] })));
         setNotebooks(newData.notebooks);
       }).catch(e => console.error("Initial sync failed", e));
     }
@@ -143,7 +160,10 @@ const AuthenticatedApp: React.FC = () => {
         setNotes(data.notes);
         setNotebooks(data.notebooks);
 
-        if (data.notes.length > 0) {
+        // Only set active note if saved one doesn't exist in loaded notes
+        const savedId = getStoredSettings().activeNoteId;
+        const savedNoteExists = savedId && data.notes.some(n => n.id === savedId);
+        if (!savedNoteExists && data.notes.length > 0) {
           setActiveNoteId(data.notes[0].id);
         }
       } catch (err) {
@@ -229,6 +249,49 @@ const AuthenticatedApp: React.FC = () => {
     }
   };
 
+  // Keyboard Shortcuts Configuration
+  const shortcuts: ShortcutConfig[] = useMemo(() => [
+    {
+      key: 'n',
+      ctrl: true,
+      description: 'New Note',
+      handler: () => {
+        if (notebooks.length > 0 && user) {
+          handleCreateNote(notebooks[0].id);
+        }
+      }
+    },
+    {
+      key: 'p',
+      ctrl: true,
+      description: 'Search Notes',
+      handler: () => {
+        setIsSidebarOpen(true);
+      }
+    },
+    {
+      key: 'f',
+      ctrl: true,
+      shift: true,
+      description: 'Toggle Focus Mode',
+      handler: () => setIsFocusMode(prev => !prev)
+    },
+    {
+      key: ',',
+      ctrl: true,
+      description: 'Open Settings',
+      handler: () => setIsSettingsOpen(true)
+    },
+    {
+      key: '/',
+      ctrl: true,
+      description: 'Show Keyboard Shortcuts',
+      handler: () => setShowShortcutsHelp(true)
+    }
+  ], [notebooks, user, handleCreateNote, setIsFocusMode, setIsSettingsOpen]);
+
+  useKeyboardShortcuts(shortcuts);
+
   const handleUpdateNote = async (updatedNote: Note) => {
     setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
     await saveNote(updatedNote);
@@ -270,9 +333,9 @@ const AuthenticatedApp: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-slate-950 text-slate-400">
+      <div className="flex h-screen w-full items-center justify-center" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)' }}>
         <div className="flex flex-col items-center gap-4">
-           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--text-primary)' }}></div>
            <span className="text-sm font-medium">Loading...</span>
         </div>
       </div>
@@ -282,7 +345,7 @@ const AuthenticatedApp: React.FC = () => {
   const activeNote = notes.find(n => n.id === activeNoteId);
 
   return (
-    <div className="flex h-full w-full bg-white dark:bg-slate-950 relative">
+    <div className="noise flex h-full w-full relative" style={{ background: 'var(--bg-primary)' }}>
       {!isFocusMode && (
         <Sidebar
           notebooks={notebooks}
@@ -336,7 +399,7 @@ const AuthenticatedApp: React.FC = () => {
           user={user}
         />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 p-6 text-center transition-colors">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center transition-colors" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
             {!isFocusMode && (
               <button
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -345,7 +408,7 @@ const AuthenticatedApp: React.FC = () => {
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
               </button>
             )}
-            <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm flex items-center justify-center mb-4 transition-colors">
+            <div className="w-16 h-16 rounded-2xl shadow-sm flex items-center justify-center mb-4 transition-colors" style={{ background: 'var(--bg-primary)' }}>
                 <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             </div>
             <h2 className="text-lg font-medium text-slate-600 dark:text-slate-300">Select a page to view</h2>
@@ -360,6 +423,12 @@ const AuthenticatedApp: React.FC = () => {
         onSave={handleSaveSettings}
         installPrompt={deferredPrompt}
         onInstallPWA={handleInstallPWA}
+      />
+
+      <ShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+        shortcuts={shortcuts}
       />
     </div>
   );

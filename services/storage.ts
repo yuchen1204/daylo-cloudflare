@@ -1,6 +1,16 @@
 import { Note, Notebook, AppSettings, NoteFormat, NoteHistoryEntry } from '../types';
 import { SETTINGS_STORAGE_KEY } from '../constants';
 
+function normalizeTags(note: Note): Note {
+  if (Array.isArray(note.tags)) return note;
+  try {
+    const parsed = typeof note.tags === 'string' ? JSON.parse(note.tags) : [];
+    return { ...note, tags: Array.isArray(parsed) ? parsed : [] };
+  } catch {
+    return { ...note, tags: [] };
+  }
+}
+
 // --- IndexedDB Configuration ---
 const DB_NAME = 'GeminiNotesDB';
 const DB_VERSION = 3; // Incremented for history support
@@ -61,6 +71,8 @@ export const initializeData = async (): Promise<{ notes: Note[], notebooks: Note
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+
+  notes = notes.map(normalizeTags);
 
   // --- Migration Logic ---
   // If absolutely no data, create a default notebook anyway.

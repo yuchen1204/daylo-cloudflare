@@ -125,13 +125,14 @@ function SortableNotebookTrigger({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="group flex items-center justify-between py-1 px-2 rounded-md hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors">
+    <div ref={setNodeRef} style={style} className="group flex items-center justify-between py-1 px-2 rounded-md hover:bg-[var(--interactive-hover)] transition-colors">
       {/* Drag Handle */}
       {!disabled && (
         <div 
             {...attributes} 
             {...listeners} 
-            className="mr-1 p-1 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 cursor-grab active:cursor-grabbing touch-none"
+            className="mr-1 p-1 cursor-grab active:cursor-grabbing touch-none"
+            style={{ color: 'var(--text-muted)' }}
         >
             <GripVertical className="w-3.5 h-3.5" />
         </div>
@@ -142,47 +143,52 @@ function SortableNotebookTrigger({
           onClick={onToggle}
       >
           {expanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           )}
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{notebook.name}</span>
-          <span className="text-xs text-slate-400">({noteCount})</span>
+          <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{notebook.name}</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>({noteCount})</span>
       </button>
       
       {/* Action Buttons */}
       <div className={`flex items-center transition-opacity ${expanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
           <button 
             onClick={onImport}
-            className="p-1 hover:bg-slate-300 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mr-0.5"
+            className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors mr-0.5"
+            style={{ color: 'var(--text-muted)' }}
             title="Import Markdown/Text"
           >
             <Upload className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={(e) => onCreateSpecial('mindmap', e)}
-            className="p-1 hover:bg-slate-300 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors mr-0.5"
+            className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors mr-0.5"
+            style={{ color: 'var(--text-muted)' }}
             title="New MindMap"
           >
             <Network className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={(e) => onCreateSpecial('canvas', e)}
-            className="p-1 hover:bg-slate-300 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors mr-0.5"
+            className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors mr-0.5"
+            style={{ color: 'var(--text-muted)' }}
             title="New Canvas"
           >
             <Palette className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={onCreateNote}
-            className="p-1 hover:bg-slate-300 dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title="New Text Note"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={onDelete}
-            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title="Delete Notebook"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -225,7 +231,8 @@ function SortableNoteItem({ note, isActive, onSelect, onRequestDelete, disabled 
                 <div 
                     {...attributes} 
                     {...listeners}
-                    className="flex items-center justify-center px-1 cursor-grab active:cursor-grabbing touch-none text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
+                    className="flex items-center justify-center px-1 cursor-grab active:cursor-grabbing touch-none"
+                    style={{ color: 'var(--text-muted)' }}
                 >
                     <GripVertical className="w-3 h-3" />
                 </div>
@@ -269,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
   onLogin
 }) => {
-  const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set(notebooks.map(n => n.id)));
+  const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   
   // Login Modal State
@@ -558,19 +565,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div 
         className={`
-          fixed inset-y-0 left-0 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out flex flex-col
+          fixed inset-y-0 left-0 border-r transform transition-transform duration-300 ease-in-out flex flex-col
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:relative md:translate-x-0
         `}
-        style={{ zIndex: 9999 }}
+        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', zIndex: 9999 }}
       >
         {/* Header & Search */}
-        <div className="p-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="p-3 border-b shrink-0" style={{ borderColor: 'var(--border-primary)' }}>
           <div className="flex items-center justify-between">
-            <h1 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 pl-2">
+            <h1 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 pl-2" style={{ color: 'var(--text-muted)' }}>
                <Book className="w-3.5 h-3.5" /> Library
             </h1>
-            <button onClick={startCreateNotebook} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="New Notebook">
+            <button onClick={startCreateNotebook} className="p-1 hover:bg-[var(--interactive-hover)] rounded transition-colors" style={{ color: 'var(--text-muted)' }} title="New Notebook">
                <FolderPlus className="w-4 h-4" />
              </button>
           </div>
@@ -578,13 +585,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="p-3 shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Search notes..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
+              className="w-full pl-9 pr-4 py-1.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-muted)] focus:border-transparent transition-colors"
+              style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
             />
           </div>
         </div>
@@ -596,7 +604,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="mb-4 mx-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-lg relative group">
                <button 
                  onClick={onDismissPWABanner}
-                 className="absolute top-1 right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                   className="absolute top-1 right-1 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                   style={{ color: 'var(--text-muted)' }}
                >
                  <X className="w-3 h-3" />
                </button>
@@ -605,7 +614,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                      <Download className="w-4 h-4" />
                      <span className="text-xs font-semibold">Install App</span>
                   </div>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                   <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     Install Daylo for a better experience and offline access.
                   </p>
                   <button 
@@ -620,8 +629,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {isSearching ? (
             <div>
-               <h3 className="px-2 py-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Search Results</h3>
-               {filteredNotes.length === 0 ? <div className="p-4 text-center text-slate-400 text-sm">No matches found.</div> : (
+                 <h3 className="px-2 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Search Results</h3>
+                 {filteredNotes.length === 0 ? <div className="p-4 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No matches found.</div> : (
                   <ul className="space-y-0.5">
                     {filteredNotes.map(note => (
                       <NoteItem key={note.id} note={note} isActive={activeNoteId === note.id} onSelect={() => onSelectNote(note.id)} onRequestDelete={(e) => requestDeleteNote(note.id, note.title, e)} />
@@ -635,7 +644,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                {/* Pinned */}
                {pinnedNotes.length > 0 && (
                  <div className="mb-4">
-                   <div className="flex items-center gap-2 px-2 py-1 mb-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                   <div className="flex items-center gap-2 px-2 py-1 mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                       <Pin className="w-3 h-3" /> <span>Pinned</span>
                    </div>
                    <ul className="ml-0 space-y-0.5">
@@ -643,14 +652,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <NoteItem key={note.id} note={note} isActive={activeNoteId === note.id} onSelect={() => onSelectNote(note.id)} onRequestDelete={(e) => requestDeleteNote(note.id, note.title, e)} showPinIcon />
                       ))}
                    </ul>
-                   <div className="my-2 border-b border-slate-100 dark:border-slate-800 mx-2"></div>
+                   <div className="my-2 border-b mx-2" style={{ borderColor: 'var(--border-subtle)' }}></div>
                  </div>
                )}
 
                {/* Notebooks Sortable */}
                <SortableContext items={notebooks.map(n => n.id)} strategy={verticalListSortingStrategy} disabled={!isDnDEnabled}>
                  <div>
-                    <div className="flex items-center justify-between px-2 py-1 mb-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                     <div className="flex items-center justify-between px-2 py-1 mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                        <span>Notebooks</span>
                        {selectedTag && (
                          <button onClick={() => setSelectedTag(null)} className="text-[10px] text-indigo-500 hover:text-indigo-600 flex items-center gap-1">
@@ -675,17 +684,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                           {/* Notes List */}
                           {expandedNotebooks.has(group.id) && (
-                            <div className="ml-2 mt-1 border-l border-slate-200 dark:border-slate-800 pl-1">
+                              <div className="ml-2 mt-1 border-l pl-1" style={{ borderColor: 'var(--border-subtle)' }}>
                               {creatingNoteInNotebookId === group.id && (
                                 <div className="pl-3 py-1.5 pr-2 mb-1">
                                     <input
-                                      ref={inputRef} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => handleInputKeyDown(e, 'note', group.id)} onBlur={() => !inputValue && cancelCreation()} placeholder="Note title..." className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 border-b border-indigo-500 focus:outline-none placeholder:text-slate-400"
+                                      ref={inputRef} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => handleInputKeyDown(e, 'note', group.id)} onBlur={() => !inputValue && cancelCreation()} placeholder="Note title..." className="w-full bg-transparent text-sm border-b focus:outline-none" style={{ color: 'var(--text-primary)', borderColor: 'var(--text-muted)' }}
                                     />
                                 </div>
                               )}
                               <SortableContext items={group.notes.map(n => n.id)} strategy={verticalListSortingStrategy} disabled={!isDnDEnabled}>
                                 {group.notes.length === 0 && !creatingNoteInNotebookId ? (
-                                  <div className="pl-4 py-2 text-xs text-slate-400 italic">Empty notebook</div>
+                                  <div className="pl-4 py-2 text-xs italic" style={{ color: 'var(--text-muted)' }}>Empty notebook</div>
                                 ) : (
                                   <ul className="space-y-0.5">
                                     {group.notes.map(note => (
@@ -712,11 +721,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                {isCreatingNotebook ? (
                   <div className="mt-2 px-2">
                      <input
-                       ref={inputRef} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => handleInputKeyDown(e, 'notebook')} onBlur={() => !inputValue && cancelCreation()} placeholder="Notebook Name..." className="w-full bg-white dark:bg-slate-800 border border-indigo-500 rounded px-2 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                       ref={inputRef} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => handleInputKeyDown(e, 'notebook')} onBlur={() => !inputValue && cancelCreation()} placeholder="Notebook Name..." className="w-full border rounded px-2 py-1.5 text-sm focus:outline-none" style={{ background: 'var(--bg-primary)', borderColor: 'var(--text-muted)', color: 'var(--text-primary)' }}
                      />
                   </div>
                ) : (
-                  <button onClick={startCreateNotebook} className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-md transition-colors border border-dashed border-slate-200 dark:border-slate-800">
+                  <button onClick={startCreateNotebook} className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--interactive-hover)] rounded-md transition-colors border border-dashed" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-primary)' }}>
                      <Plus className="w-4 h-4" /> New Notebook
                   </button>
                )}
@@ -725,9 +734,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* User Auth Footer - NEW */}
-        <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
+        <div className="border-t shrink-0" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}>
            {user ? (
-             <button onClick={() => setIsProfileModalOpen(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <button onClick={() => setIsProfileModalOpen(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-secondary)' }}>
                 <div className="flex items-center gap-2 overflow-hidden">
                    <img 
                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=6366f1&color=fff&size=32`}
@@ -751,7 +760,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <LogOut className="w-4 h-4" />
              </button>
            ) : (
-             <button onClick={() => setIsLoginModalOpen(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <button onClick={() => setIsLoginModalOpen(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-secondary)' }}>
                 <div className="flex items-center gap-2">
                    <LogIn className="w-4 h-4" /> <span>Sync to Cloud</span>
                 </div>
@@ -761,8 +770,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* History Panel */}
         {showHistoryPanel && (
-          <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
-             <button onClick={() => setIsTimelineExpanded(!isTimelineExpanded)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <div className="border-t shrink-0" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}>
+             <button onClick={() => setIsTimelineExpanded(!isTimelineExpanded)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-secondary)' }}>
                 <div className="flex items-center gap-2">
                    <History className="w-4 h-4" /> <span>History & Backups</span>
                 </div>
@@ -770,17 +779,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
              </button>
 
              {isTimelineExpanded && (
-               <div className="max-h-48 overflow-y-auto px-2 pb-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                  {history.length === 0 ? <p className="p-3 text-xs text-slate-400 text-center italic">No history available for this note.</p> : (
+               <div className="max-h-48 overflow-y-auto px-2 pb-3 border-t" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                  {history.length === 0 ? <p className="p-3 text-xs text-center italic" style={{ color: 'var(--text-muted)' }}>No history available for this note.</p> : (
                     <ul className="space-y-1 pt-2">
                       {history.map((entry) => (
                         <li key={entry.id}>
-                          <button onClick={() => setSelectedHistory(entry)} className="w-full text-left px-3 py-2 rounded-md hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 group transition-all">
+                           <button onClick={() => setSelectedHistory(entry)} className="w-full text-left px-3 py-2 rounded-md hover:bg-[var(--interactive-hover)] border border-transparent group transition-all">
                              <div className="flex items-center justify-between mb-1">
-                               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{new Date(entry.timestamp).toLocaleDateString()}</span>
-                               <span className="text-[10px] text-slate-400 font-mono">{new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                              </div>
-                             <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 opacity-80 font-mono">{entry.content.startsWith('[') ? '[Drawing Data]' : (entry.content.substring(0, 50) || "(Empty)")}</p>
+                             <p className="text-[10px] line-clamp-1 opacity-80 font-mono" style={{ color: 'var(--text-muted)' }}>{entry.content.startsWith('[') ? '[Drawing Data]' : (entry.content.substring(0, 50) || "(Empty)")}</p>
                           </button>
                         </li>
                       ))}
@@ -792,12 +801,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Theme & Settings */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shrink-0">
+         <div className="p-3 border-t shrink-0" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-primary)' }}>
            <div className="flex items-center gap-1">
-              <button onClick={onToggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors" title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
+               <button onClick={onToggleTheme} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-colors" style={{ color: 'var(--text-muted)' }} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
                  {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               </button>
-              <button onClick={onOpenSettings} className="flex-1 flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
+               <button onClick={onOpenSettings} className="flex-1 flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-[var(--interactive-hover)] rounded-md transition-colors" style={{ color: 'var(--text-secondary)' }}>
                  <Settings className="w-4 h-4" /> <span>Settings</span>
               </button>
            </div>
@@ -833,39 +842,44 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, isActive, onSelect, onRequest
   return (
     <button 
         onClick={onSelect}
-        className={`group w-full text-left px-3 py-2 rounded-md flex items-start gap-2.5 transition-all relative ${
+        className={`group w-full text-left px-3 py-2 rounded-md flex items-start gap-2.5 transition-all relative border ${
           isActive 
-            ? 'bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700' 
-            : 'hover:bg-slate-200/50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+            ? 'shadow-sm' 
+            : 'hover:bg-[var(--interactive-hover)] border-transparent hover:border-[var(--border-primary)]'
         }`}
+        style={{ 
+          background: isActive ? 'var(--bg-primary)' : undefined,
+          borderColor: isActive ? 'var(--border-primary)' : undefined
+        }}
     >
-        <div className={`mt-0.5 shrink-0 ${isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400'}`}>
+        <div className={`mt-0.5 shrink-0`} style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-muted)' }}>
            <Icon className="w-4 h-4" />
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-             <span className={`text-sm font-medium truncate pr-6 ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>
+             <span className="text-sm font-medium truncate pr-6" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                {note.title || 'Untitled'}
              </span>
              {showPinIcon && <Pin className="w-3 h-3 text-amber-500 rotate-45 shrink-0" />}
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 shrink-0">
+            <span className="text-[10px] shrink-0" style={{ color: 'var(--text-muted)' }}>
                {new Date(note.updatedAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
             </span>
             {Array.isArray(note.tags) && note.tags.length > 0 && (
               <div className="flex gap-1 overflow-hidden">
                 {note.tags.slice(0, 2).map(tag => (
-                   <span key={tag} className={`inline-block w-1.5 h-1.5 rounded-full ${getTagColor(tag).split(' ')[0]}`}></span>
+                   <span key={tag} className="inline-block w-1.5 h-1.5 rounded-full"
+                         style={{ backgroundColor: getTagColor(tag).bg }}></span>
                 ))}
               </div>
             )}
           </div>
         </div>
         
-        <div role="button" onClick={onRequestDelete} className={`absolute right-2 top-2 p-1.5 rounded-md bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-all shadow-sm md:shadow-none ${isActive ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`} title="Delete Note">
+        <div role="button" onClick={onRequestDelete} className={`absolute right-2 top-2 p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all shadow-sm md:shadow-none ${isActive ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`} style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--text-muted)' }} title="Delete Note">
           <Trash2 className="w-4 h-4" />
         </div>
     </button>

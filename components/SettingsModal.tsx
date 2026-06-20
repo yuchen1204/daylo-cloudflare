@@ -76,28 +76,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   };
 
   const renderSidebar = () => (
-    <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 p-2 flex flex-row md:flex-col gap-1 overflow-x-auto">
+    <div className="w-full md:w-48 border-b md:border-b-0 md:border-r p-2 flex flex-row md:flex-col gap-1 overflow-x-auto" style={{ borderColor: 'var(--border-subtle)' }}>
       <button 
         onClick={() => setActiveTab('general')}
-        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'general' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'general' ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+        style={{ color: activeTab === 'general' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
       >
         <Settings className="w-4 h-4" /> General
       </button>
       <button 
         onClick={() => setActiveTab('markdown')}
-        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'markdown' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'markdown' ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+        style={{ color: activeTab === 'markdown' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
       >
         <Type className="w-4 h-4" /> Markdown
       </button>
       <button 
         onClick={() => setActiveTab('canvas')}
-        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'canvas' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'canvas' ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+        style={{ color: activeTab === 'canvas' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
       >
         <Grid className="w-4 h-4" /> Canvas
       </button>
       <button 
         onClick={() => setActiveTab('mindmap')}
-        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'mindmap' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'mindmap' ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+        style={{ color: activeTab === 'mindmap' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
       >
         <GitGraph className="w-4 h-4" /> MindMap
       </button>
@@ -106,12 +110,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
   return (
     <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl h-[80vh] max-h-[600px] rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col animate-in fade-in zoom-in-95 duration-200 transition-colors overflow-hidden">
+      <div className="w-full max-w-2xl h-[80vh] max-h-[600px] rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 transition-colors overflow-hidden"
+           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Settings</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-muted)' }}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -146,16 +151,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="p-4 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-sm font-medium transition-colors"
+            className="px-4 py-2 hover:bg-[var(--interactive-hover)] rounded-md text-sm font-medium transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
           >
             Cancel
           </button>
           <button
             onClick={handleSaveSettings}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 shadow-sm transition-colors"
+            className="px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors"
+            style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
           >
             Save Changes
           </button>

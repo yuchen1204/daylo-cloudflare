@@ -425,7 +425,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
   }
 
   return (
-    <div ref={wrapperRef} className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-900 relative">
+    <div ref={wrapperRef} className="flex flex-col h-full w-full relative" style={{ background: 'var(--bg-secondary)' }}>
       
       {/* Hidden Input */}
       <input 
@@ -459,50 +459,56 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
         onPointerDown={handleToolbarDown}
         onPointerMove={handleToolbarMove}
         onPointerUp={handleToolbarUp}
-        className={`absolute z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-2xl transition-all duration-200
+        className={`absolute z-50 backdrop-blur-md shadow-2xl transition-all duration-200
           rounded-2xl p-2 flex flex-col gap-2 touch-none select-none cursor-move
           ${!toolbarPos ? 'top-4 left-4' : ''}
         `}
-        style={toolbarPos ? { 
-          left: toolbarPos.x, 
-          top: toolbarPos.y, 
-          bottom: 'auto', 
-          transform: 'none',
-          transition: isDraggingToolbar ? 'none' : 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)' 
-        } : {}}
+        style={{ 
+          background: 'rgba(255,255,255,0.9)', 
+          border: '1px solid var(--border-primary)',
+          ...(toolbarPos ? { 
+            left: toolbarPos.x, 
+            top: toolbarPos.y, 
+            bottom: 'auto', 
+            transform: 'none',
+            transition: isDraggingToolbar ? 'none' : 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)' 
+          } : {})
+        }}
       >
          {/* Drag Handle */}
          <div className="w-full flex justify-center pb-1 opacity-50 hover:opacity-100 transition-opacity">
-            <GripHorizontal className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+              <GripHorizontal className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
          </div>
 
          {/* Tools */}
-         <div className="flex flex-col gap-2">
+         <div className="flex flex-col gap-2" onPointerDown={(e) => e.stopPropagation()}>
             <button 
               onClick={(e) => { e.stopPropagation(); setCurrentTool('pen'); }}
-              className={`p-3 rounded-xl transition-all ${currentTool === 'pen' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400'}`}
+              className={`p-3 rounded-xl transition-all ${currentTool === 'pen' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-md' : 'hover:bg-[var(--interactive-hover)]'}`}
+              style={{ color: currentTool === 'pen' ? undefined : 'var(--text-muted)' }}
               title="Pen"
             >
               <Pen className="w-5 h-5" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); setCurrentTool('eraser'); }}
-              className={`p-3 rounded-xl transition-all ${currentTool === 'eraser' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400'}`}
+              className={`p-3 rounded-xl transition-all ${currentTool === 'eraser' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-md' : 'hover:bg-[var(--interactive-hover)]'}`}
+              style={{ color: currentTool === 'eraser' ? undefined : 'var(--text-muted)' }}
               title="Eraser"
             >
               <Eraser className="w-5 h-5" />
             </button>
          </div>
 
-         <div className="w-full h-px bg-slate-200 dark:bg-slate-700"></div>
+         <div className="w-full h-px" style={{ background: 'var(--border-primary)' }}></div>
 
          {/* Settings Toggle */}
-         <div className="relative">
+         <div className="relative" onPointerDown={(e) => e.stopPropagation()}>
            <button
              onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(!isSettingsOpen); }}
-             className={`w-full p-2 rounded-xl transition-all flex items-center justify-center
-               ${isSettingsOpen ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-500' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}
-             `}
+              className={`w-full p-2 rounded-xl transition-all flex items-center justify-center
+                ${isSettingsOpen ? 'bg-[var(--interactive-active)] ring-2 ring-[var(--text-muted)]' : 'hover:bg-[var(--interactive-hover)]'}
+              `}
              title="Settings"
            >
              <div 
@@ -518,52 +524,57 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
             {/* SETTINGS PANEL (Nested Popover) */}
             {isSettingsOpen && (
               <div 
-                className={`absolute z-[60] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl p-4 flex flex-col gap-4 w-72 cursor-default
+                className={`absolute z-[60] backdrop-blur-md shadow-xl rounded-2xl p-4 flex flex-col gap-4 w-72 cursor-default
                    ${isDockedLeft ? 'left-full ml-4' : 'right-full mr-4'}
                    ${isDockedTop ? 'top-0' : 'bottom-0'}
                 `}
+                style={{ background: 'rgba(255,255,255,0.95)', border: '1px solid var(--border-primary)' }}
                 onPointerDown={(e) => e.stopPropagation()} 
               >
                  {/* Background Section */}
                  <div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Background</div>
+                    <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Background</div>
                     <div className="grid grid-cols-4 gap-2">
                        <button 
                          onClick={() => setBackgroundMode('grid')}
-                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'grid' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'border-slate-200 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'grid' ? 'border-[var(--text-muted)] bg-[var(--interactive-active)]' : 'border-[var(--border-primary)] hover:bg-[var(--interactive-hover)]'}`}
+                         style={{ color: backgroundMode === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                          title="Grid"
                        >
                           <Grid3X3 className="w-4 h-4" />
                        </button>
                        <button 
                          onClick={() => setBackgroundMode('transparent')}
-                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'transparent' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'border-slate-200 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'transparent' ? 'border-[var(--text-muted)] bg-[var(--interactive-active)]' : 'border-[var(--border-primary)] hover:bg-[var(--interactive-hover)]'}`}
+                         style={{ color: backgroundMode === 'transparent' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                          title="Transparent"
                        >
-                          <div className="w-4 h-4 border border-slate-300 dark:border-slate-500 bg-[url(https://www.transparenttextures.com/patterns/checkerboard-cross-hatch.png)] opacity-50"></div>
+                          <div className="w-4 h-4 border opacity-50" style={{ borderColor: 'var(--border-primary)', background: 'repeating-conic-gradient(var(--border-primary) 0% 25%, transparent 0% 50%) 50% / 8px 8px' }}></div>
                        </button>
                        <button 
                          onClick={() => setBackgroundMode('white')}
-                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'white' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'border-slate-200 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'white' ? 'border-[var(--text-muted)] bg-[var(--interactive-active)]' : 'border-[var(--border-primary)] hover:bg-[var(--interactive-hover)]'}`}
+                         style={{ color: backgroundMode === 'white' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                          title="White"
                        >
-                          <div className="w-4 h-4 bg-white border border-slate-200 rounded-sm"></div>
+                          <div className="w-4 h-4 bg-white border border-[var(--border-primary)] rounded-sm"></div>
                        </button>
                        <button 
                          onClick={() => setBackgroundMode('black')}
-                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'black' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'border-slate-200 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                         className={`h-8 rounded-lg border flex items-center justify-center ${backgroundMode === 'black' ? 'border-[var(--text-muted)] bg-[var(--interactive-active)]' : 'border-[var(--border-primary)] hover:bg-[var(--interactive-hover)]'}`}
+                         style={{ color: backgroundMode === 'black' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                          title="Black"
                        >
-                          <div className="w-4 h-4 bg-black border border-slate-700 rounded-sm"></div>
+                          <div className="w-4 h-4 bg-black border border-[var(--border-primary)] rounded-sm"></div>
                        </button>
                     </div>
                  </div>
 
-                 <div className="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+                 <div className="h-px w-full" style={{ background: 'var(--border-subtle)' }}></div>
 
                  {/* Width Slider */}
                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <div className="flex justify-between text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
                       <span>Width</span>
                       <span>{currentWidth}px</span>
                     </div>
@@ -573,11 +584,12 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
                       max="30" 
                       value={currentWidth} 
                       onChange={(e) => setCurrentWidth(parseInt(e.target.value))}
-                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                      style={{ background: 'var(--bg-tertiary)' }}
                     />
                  </div>
 
-                 <div className="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+                 <div className="h-px w-full" style={{ background: 'var(--border-subtle)' }}></div>
 
                  {/* Colors */}
                  <div className="grid grid-cols-6 gap-2">
@@ -585,27 +597,27 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
                       <button
                         key={c}
                         onClick={() => { setCurrentColor(c); }}
-                        className={`w-8 h-8 rounded-full border border-slate-100 dark:border-slate-600 shadow-sm hover:scale-110 transition-transform ${currentColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-800 scale-110' : ''}`}
-                        style={{ backgroundColor: c }}
+                        className={`w-8 h-8 rounded-full border shadow-sm hover:scale-110 transition-transform ${currentColor === c ? 'ring-2 ring-offset-1 ring-[var(--text-muted)] scale-110' : ''}`}
+                        style={{ backgroundColor: c, borderColor: 'var(--border-primary)' }}
                       />
                     ))}
                  </div>
                  
                  {/* Custom Color Input */}
                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700"></div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">Custom</span>
-                    <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700"></div>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
+                    <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Custom</span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
                  </div>
                  <div className="flex items-center gap-2">
-                   <div className="relative flex-1 h-9 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600">
+                   <div className="relative flex-1 h-9 rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border-primary)' }}>
                      <input 
                        type="color" 
                        value={currentColor}
                        onChange={(e) => setCurrentColor(e.target.value)}
                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                      />
-                     <div className="w-full h-full flex items-center justify-center font-mono text-xs text-slate-600 dark:text-slate-300" style={{ backgroundColor: currentColor }}>
+                     <div className="w-full h-full flex items-center justify-center font-mono text-xs" style={{ backgroundColor: currentColor, color: 'var(--text-primary)' }}>
                         <span className="bg-black/20 px-1 rounded text-white">{currentColor}</span>
                      </div>
                    </div>
@@ -615,14 +627,15 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(({ co
 
          </div>
 
-         <div className="w-full h-px bg-slate-200 dark:bg-slate-700"></div>
+         <div className="w-full h-px" style={{ background: 'var(--border-primary)' }}></div>
 
          {/* Actions */}
-         <div className="flex flex-col gap-2">
+         <div className="flex flex-col gap-2" onPointerDown={(e) => e.stopPropagation()}>
             <button 
               onClick={(e) => { e.stopPropagation(); handleUndo(); }}
               disabled={historyStep <= 0}
-              className="p-3 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-3 hover:bg-[var(--interactive-hover)] rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ color: 'var(--text-muted)' }}
               title="Undo"
             >
               <Undo className="w-5 h-5" />

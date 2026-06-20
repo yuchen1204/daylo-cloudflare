@@ -22,7 +22,7 @@ const curveStyleOptions: SelectOption[] = [
 export const MindmapSettings: React.FC<MindmapSettingsProps> = ({ localSettings, updateNested }) => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2">MindMap</h3>
+      <h3 className="text-lg font-medium border-b pb-2" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}>MindMap</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CustomSelect

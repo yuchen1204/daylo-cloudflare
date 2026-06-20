@@ -49,10 +49,11 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({
 
   return (
     <div 
-      className="fixed z-[100] w-64 bg-white dark:bg-slate-900 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
-      style={{ top: position.top, left: position.left }}
+      className="fixed z-[100] w-64 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
+      style={{ top: position.top, left: position.left, background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
     >
-        <div className="px-3 py-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
+        <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b"
+             style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
             Basic Blocks
         </div>
       {filtered.map((cmd, idx) => (
@@ -61,15 +62,16 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({
           onClick={() => onSelect(cmd)}
           className={`flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors ${
             idx === selectedIndex 
-              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              ? 'bg-[var(--interactive-active)]' 
+              : 'hover:bg-[var(--interactive-hover)]'
           }`}
+          style={{ color: idx === selectedIndex ? 'var(--text-primary)' : 'var(--text-secondary)' }}
         >
-          <span className={`${idx === selectedIndex ? 'text-indigo-500' : 'text-slate-400'}`}>
+          <span style={{ color: idx === selectedIndex ? 'var(--text-primary)' : 'var(--text-muted)' }}>
              {cmd.icon}
           </span>
           <span className="flex-1 font-medium">{cmd.label}</span>
-          <span className="text-xs text-slate-300 font-mono hidden group-hover:block opacity-50">{cmd.syntax.trim().substring(0, 5)}...</span>
+          <span className="text-xs font-mono hidden group-hover:block opacity-50" style={{ color: 'var(--text-muted)' }}>{cmd.syntax.trim().substring(0, 5)}...</span>
         </button>
       ))}
     </div>

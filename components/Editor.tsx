@@ -6,12 +6,17 @@ import {
   File, Image, FileJson, Upload, Share2, Copy, Lock
 } from 'lucide-react';
 import { downloadNote } from '../services/storage';
+import { cloudSyncService } from '../services/cloudflare-sync';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SlashMenu, SLASH_COMMANDS, SlashCommand } from './SlashMenu';
 import { getTagColor } from '../constants';
 import { CanvasEditor, CanvasEditorRef } from './CanvasEditor';
 import { MindMapEditor } from './MindMapEditor';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { MermaidBlock } from './MermaidBlock';
+import { TaskListItem } from './TaskListItem';
 
 // Final, optimized Code Block. This replaces the <pre> tag entirely.
 const CodeBlock = ({ children }) => {
@@ -37,10 +42,10 @@ const CodeBlock = ({ children }) => {
     : 'relative my-4 rounded-xl';
 
   return (
-    <div className={`${fullScreenClasses} shadow-lg dark:shadow-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-gray-700/50 overflow-hidden font-sans transition-all duration-300 ease-in-out`}>
+    <div className={`${fullScreenClasses} overflow-hidden font-sans transition-all duration-300 ease-in-out`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
       {isFullScreen && <div className="fixed inset-0 bg-black/70 z-[-1] animate-in fade-in duration-200" onClick={() => setIsFullScreen(false)} />}
       {/* Window Header */}
-      <div className="flex items-center h-9 px-3 bg-slate-100/70 dark:bg-gray-800/50 backdrop-blur-sm border-b border-slate-200 dark:border-gray-700/50">
+      <div className="flex items-center h-9 px-3 backdrop-blur-sm" style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-primary)' }}>
         <div className="flex items-center gap-2">
           <div onClick={handleCopy} className="w-3.5 h-3.5 bg-red-400 dark:bg-red-500 rounded-full flex items-center justify-center cursor-pointer group">
             <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-red-800 dark:text-red-900 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -58,12 +63,13 @@ const CodeBlock = ({ children }) => {
             </svg>
           </div>
         </div>
-        <div className="flex-1 text-right text-xs text-slate-500 dark:text-gray-400 font-sans tracking-wide pr-2">{language}</div>
+        <div className="flex-1 text-right text-xs font-sans tracking-wide pr-2" style={{ color: 'var(--text-muted)' }}>{language}</div>
       </div>
 
       {!isCollapsed && (
         <div
-        className={`${isFullScreen ? 'overflow-auto' : 'overflow-x-auto'} p-4 text-sm font-mono bg-white dark:bg-[#1e1e1e] text-slate-800 dark:text-slate-200 leading-6 whitespace-pre-wrap break-words`}
+        className={`${isFullScreen ? 'overflow-auto' : 'overflow-x-auto'} p-4 text-sm font-mono leading-6 whitespace-pre-wrap break-words`}
+        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
       >
           {codeEl}
         </div>
@@ -75,7 +81,20 @@ const CodeBlock = ({ children }) => {
 
 const OldCodeBlock = ({ node, inline, className, children, ...props }) => {
   return (
-    <code className={`font-mono text-sm bg-slate-200 dark:bg-slate-700 rounded-sm px-1 py-0.5 ${className}`} {...props}>
+    <code className={`font-mono text-sm rounded-sm px-1 py-0.5 ${className}`} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} {...props}>
+      {children}
+    </code>
+  );
+};
+
+const MermaidCodeBlock = ({ node, inline, className, children, ...props }) => {
+  const match = /language-mermaid/.exec(className || '');
+  if (match) {
+    const code = String(children).replace(/\n$/, '');
+    return <MermaidBlock code={code} />;
+  }
+  return (
+    <code className={`font-mono text-sm rounded-sm px-1 py-0.5 ${className}`} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} {...props}>
       {children}
     </code>
   );
@@ -225,7 +244,7 @@ export const Editor: React.FC<EditorProps> = ({
     const newStatus = !isCurrentlyShared;
     
     try {
-        const linkId = await syncService.shareNote(user, note, newStatus);
+        const linkId = await cloudSyncService.shareNote(note, newStatus);
         
         onUpdate({
           ...note,
@@ -447,26 +466,26 @@ export const Editor: React.FC<EditorProps> = ({
   const formatColorClass = () => {
     if (isCanvas) return 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
     if (isMindMap) return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400';
-    if (isMarkdown) return 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400';
-    return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
+    if (isMarkdown) return 'bg-[var(--interactive-active)]';
+                     return 'bg-[var(--interactive-active)]';
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full relative bg-white dark:bg-slate-950 transition-colors">
+    <div className="flex-1 flex flex-col h-full relative transition-colors" style={{ background: 'var(--bg-primary)' }}>
             {/* Top Bar */}
-      <div className={`h-16 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-slate-950 sticky top-0 z-20 transition-all ${isFocusMode ? 'shadow-sm opacity-80 hover:opacity-100' : ''}`}>
+      <div className={`h-16 border-b flex items-center justify-between px-6 sticky top-0 z-20 transition-all ${isFocusMode ? 'shadow-sm opacity-80 hover:opacity-100' : ''}`} style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}>
          <div className="flex items-center gap-4">
              {!isFocusMode && (
-               <button onClick={onToggleSidebar} className="md:hidden text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                <button onClick={onToggleSidebar} className="md:hidden" style={{ color: 'var(--text-muted)' }}>
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                </button>
              )}
-             <button onClick={onToggleFocusMode} className={`p-2 rounded-md transition-all ${isFocusMode ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'}`} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
+              <button onClick={onToggleFocusMode} className={`p-2 rounded-md transition-all ${isFocusMode ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isFocusMode ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
                 {isFocusMode ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
              </button>
              <div className="flex flex-col">
                <div className="flex items-center gap-2">
-                 {!isFocusMode && <div className="text-xs text-slate-400 font-mono hidden sm:block">Last edited: {new Date(note.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
+                 {!isFocusMode && <div className="text-xs font-mono hidden sm:block" style={{ color: 'var(--text-muted)' }}>Last edited: {new Date(note.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider ${formatColorClass()}`}>
                    {formatLabel()}
                  </span>
@@ -487,11 +506,12 @@ export const Editor: React.FC<EditorProps> = ({
                   }}
                   className={`p-2 rounded-md transition-all ${
                     !user 
-                      ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' 
+                      ? 'opacity-50 cursor-not-allowed' 
                       : note.accessInfo?.isPublic 
-                        ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400' 
-                        : 'text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-[var(--interactive-active)]' 
+                        : 'hover:bg-[var(--interactive-hover)]'
                   }`}
+                  style={{ color: !user ? 'var(--text-muted)' : note.accessInfo?.isPublic ? 'var(--text-primary)' : 'var(--text-muted)' }}
                   title={!user ? "Sign in to Share" : "Share Note"}
                 >
                   <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
@@ -500,15 +520,17 @@ export const Editor: React.FC<EditorProps> = ({
                 {/* Share Menu */}
                 {isShareMenuOpen && note.accessInfo?.isPublic && (
                    <div 
-                     className="absolute top-full right-0 mt-2 z-[60] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg p-1 w-56 animate-in fade-in zoom-in-95 duration-100"
+                      className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-56 animate-in fade-in zoom-in-95 duration-100"
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
                      onPointerDown={(e) => e.stopPropagation()}
                    >
-                      <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 mb-1">
-                         <span className="font-medium text-indigo-600 dark:text-indigo-400">Public Link Active</span>
+                      <div className="px-3 py-2 text-xs border-b mb-1" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
+                         <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Public Link Active</span>
                       </div>
                       <button 
                         onClick={copyShareLink} 
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                        style={{ color: 'var(--text-secondary)' }}
                       >
                          <Copy className="w-4 h-4" /> {showCopyFeedback ? "Copied!" : "Copy Link"}
                       </button>
@@ -522,7 +544,7 @@ export const Editor: React.FC<EditorProps> = ({
                 )}
              </div>
 
-             <button onClick={togglePin} className={`p-2 rounded-md transition-all ${note.isPinned ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`} title={note.isPinned ? "Unpin Note" : "Pin Note"}>
+                  <button onClick={togglePin} className={`p-2 rounded-md transition-all ${note.isPinned ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: note.isPinned ? undefined : 'var(--text-muted)' }} title={note.isPinned ? "Unpin Note" : "Pin Note"}>
                <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
              </button>
              
@@ -531,32 +553,37 @@ export const Editor: React.FC<EditorProps> = ({
               <div className="relative">
                  <button 
                     onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
-                    className={`p-2 rounded-md transition-all ${isFileMenuOpen ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    className={`p-2 rounded-md transition-all ${isFileMenuOpen ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+                    style={{ color: isFileMenuOpen ? 'var(--text-primary)' : 'var(--text-muted)' }}
                     title="Canvas Options"
                  >
                     <File className="w-4 h-4" />
                  </button>
                  {isFileMenuOpen && (
                     <div 
-                      className="absolute top-full right-0 mt-2 z-[60] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg p-1 w-48 animate-in fade-in zoom-in-95 duration-100"
+                      className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-48 animate-in fade-in zoom-in-95 duration-100"
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
                       onPointerDown={(e) => e.stopPropagation()}
                     >
                        <button 
                          onClick={() => { canvasRef.current?.exportPNG(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
+                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                         style={{ color: 'var(--text-secondary)' }}
                        >
                           <Image className="w-4 h-4" /> Export as PNG
                        </button>
                        <button 
                          onClick={() => { canvasRef.current?.exportJSON(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
+                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                         style={{ color: 'var(--text-secondary)' }}
                        >
                           <FileJson className="w-4 h-4" /> Export as JSON
                        </button>
-                       <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+                       <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
                        <button 
                          onClick={() => { canvasRef.current?.importJSON(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
+                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                         style={{ color: 'var(--text-secondary)' }}
                        >
                           <Upload className="w-4 h-4" /> Import JSON
                        </button>
@@ -567,15 +594,16 @@ export const Editor: React.FC<EditorProps> = ({
 
              {!isCanvas && (
                <>
-                 <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                 <div className="flex bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-100 dark:border-slate-800 transition-colors">
+                  <div className="h-6 w-px mx-1" style={{ background: 'var(--border-primary)' }}></div>
+                  <div className="flex p-1 rounded-lg transition-colors"
+                       style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
                    {isMarkdown && (
                      <>
-                       <button onClick={toggleSplitView} className={`p-2 rounded-md transition-all hidden sm:block ${isSplitView ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800'}`} title="Split View"><Columns className="w-4 h-4" /></button>
-                       <button onClick={() => !isSplitView && setIsPreview(!isPreview)} className={`p-2 rounded-md transition-all ${isPreview && !isSplitView ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800'} ${isSplitView ? 'opacity-50 cursor-not-allowed' : ''}`} title={isPreview ? "Switch to Edit" : "Switch to Preview"} disabled={isSplitView}>{isPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                        <button onClick={toggleSplitView} className={`p-2 rounded-md transition-all hidden sm:block ${isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title="Split View"><Columns className="w-4 h-4" /></button>
+                        <button onClick={() => !isSplitView && setIsPreview(!isPreview)} className={`p-2 rounded-md transition-all ${isPreview && !isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'} ${isSplitView ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ color: isPreview && !isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isPreview ? "Switch to Edit" : "Switch to Preview"} disabled={isSplitView}>{isPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                      </>
                    )}
-                   <button onClick={handleDownload} className="p-2 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 rounded-md transition-all" title="Export"><Download className="w-4 h-4" /></button>
+                    <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                  </div>
                </>
              )}
@@ -585,21 +613,23 @@ export const Editor: React.FC<EditorProps> = ({
       {/* Editor Area */}
       {isVisualEditor ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-none px-6 py-4 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex-none px-6 py-4 border-b" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}>
             {/* Visual Header (Title + Tags) */}
-             <div className="max-w-4xl mx-auto">
+             <div className="max-w-4xl">
                <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={`${isCanvas ? 'Canvas' : 'MindMap'} Title`}
-                  className="w-full text-2xl font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 border-none outline-none bg-transparent transition-colors mb-2"
+                   className="w-full text-2xl font-bold placeholder:border-none outline-none bg-transparent transition-colors mb-2"
+                   style={{ color: 'var(--text-primary)' }}
                 />
                
                {/* Minimal Tags */}
                <div className="flex flex-wrap items-center gap-2">
                   {tags.map(tag => (
-                    <span key={tag} className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${getTagColor(tag)} group`}>
+                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border group"
+                          style={{ backgroundColor: getTagColor(tag).bg, color: getTagColor(tag).text, borderColor: getTagColor(tag).border }}>
                       #{tag}
                       <button 
                         onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
@@ -619,31 +649,34 @@ export const Editor: React.FC<EditorProps> = ({
                        onFocus={() => setShowTagSuggestions(true)}
                        onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
                        placeholder={tags.length === 0 ? "Add tag..." : ""}
-                       className="bg-transparent text-sm text-slate-600 dark:text-slate-300 placeholder:text-slate-400 outline-none min-w-[60px]"
+                        className="bg-transparent text-sm placeholder:text-[var(--text-muted)] outline-none min-w-[60px]"
+                        style={{ color: 'var(--text-secondary)' }}
                      />
                       {showTagSuggestions && tagSuggestions.length > 0 && (
-                        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md shadow-lg border border-slate-200 dark:border-slate-800 z-50 overflow-hidden">
-                           {tagSuggestions.map((suggestion, idx) => (
-                             <button
-                               key={suggestion}
-                               onClick={() => addTag(suggestion)}
-                               className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${
-                                 idx === selectedTagIndex 
-                                   ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-                                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                               }`}
-                             >
-                                <span>#{suggestion}</span>
-                                {idx === selectedTagIndex && <span className="text-[10px] text-indigo-400">Enter</span>}
-                             </button>
-                           ))}
+                        <div className="absolute top-full left-0 mt-1 w-48 rounded-md shadow-lg z-50 overflow-hidden"
+                             style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
+                            {tagSuggestions.map((suggestion, idx) => (
+                              <button
+                                key={suggestion}
+                                onClick={() => addTag(suggestion)}
+                                className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${
+                                  idx === selectedTagIndex 
+                                    ? 'bg-[var(--interactive-active)]' 
+                                    : 'hover:bg-[var(--interactive-hover)]'
+                                }`}
+                                style={{ color: idx === selectedTagIndex ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                              >
+                                 <span>#{suggestion}</span>
+                                 {idx === selectedTagIndex && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter</span>}
+                              </button>
+                            ))}
                         </div>
                       )}
                    </div>
                </div>
              </div>
           </div>
-          <div className="flex-1 bg-slate-100 dark:bg-slate-900 relative">
+           <div className="flex-1 relative" style={{ background: 'var(--bg-secondary)' }}>
              {isCanvas ? (
                <CanvasEditor ref={canvasRef} content={content} onChange={setContent} theme={theme} />
              ) : (
@@ -653,10 +686,10 @@ export const Editor: React.FC<EditorProps> = ({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto relative" onClick={() => textareaRef.current?.focus()}>
-          <div className={`mx-auto py-10 px-8 min-h-full pb-20 ${isSplitView ? 'max-w-full' : 'max-w-3xl'}`}>
+          <div className={`py-10 px-8 min-h-full pb-20 ${isSplitView ? 'max-w-full' : 'max-w-3xl'}`}>
 
              <div 
-               className="max-w-3xl mx-auto mb-6"
+               className="max-w-3xl mb-6"
                onClick={(e) => e.stopPropagation()}
              >
                {/* Title Input */}
@@ -665,14 +698,16 @@ export const Editor: React.FC<EditorProps> = ({
                  value={title}
                  onChange={(e) => setTitle(e.target.value)}
                  placeholder="Note Title"
-                 className="w-full text-4xl font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 border-none outline-none bg-transparent transition-colors"
+                   className="w-full text-4xl font-bold placeholder:border-none outline-none bg-transparent transition-colors"
+                   style={{ color: 'var(--text-primary)' }}
                />
                
                {/* Tags Input */}
                <div className="relative flex flex-wrap items-center gap-2 mt-3">
-                  <Tag className="w-4 h-4 text-slate-400" />
+                   <Tag className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                   {tags.map(tag => (
-                    <span key={tag} className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${getTagColor(tag)} group`}>
+                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border group"
+                          style={{ backgroundColor: getTagColor(tag).bg, color: getTagColor(tag).text, borderColor: getTagColor(tag).border }}>
                       #{tag}
                       <button 
                         onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
@@ -692,25 +727,28 @@ export const Editor: React.FC<EditorProps> = ({
                       onFocus={() => setShowTagSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
                       placeholder={tags.length === 0 ? "Add tag..." : ""}
-                      className="bg-transparent text-sm text-slate-600 dark:text-slate-300 placeholder:text-slate-400 outline-none min-w-[60px]"
+                      className="bg-transparent text-sm placeholder:text-[var(--text-muted)] outline-none min-w-[60px]"
+                      style={{ color: 'var(--text-secondary)' }}
                       autoComplete="off"
                     />
                     
                     {/* Tag Suggestions Dropdown */}
                     {showTagSuggestions && tagSuggestions.length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md shadow-lg border border-slate-200 dark:border-slate-800 z-50 overflow-hidden">
+                      <div className="absolute top-full left-0 mt-1 w-48 rounded-md shadow-lg z-50 overflow-hidden"
+                           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
                          {tagSuggestions.map((suggestion, idx) => (
                            <button
                              key={suggestion}
                              onClick={() => addTag(suggestion)}
                              className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${
                                idx === selectedTagIndex 
-                                 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                 ? 'bg-[var(--interactive-active)]' 
+                                 : 'hover:bg-[var(--interactive-hover)]'
                              }`}
+                             style={{ color: idx === selectedTagIndex ? 'var(--text-primary)' : 'var(--text-secondary)' }}
                            >
                               <span>#{suggestion}</span>
-                              {idx === selectedTagIndex && <span className="text-[10px] text-indigo-400">Enter</span>}
+                              {idx === selectedTagIndex && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter</span>}
                            </button>
                          ))}
                       </div>
@@ -721,61 +759,65 @@ export const Editor: React.FC<EditorProps> = ({
              
              {isSplitView && isMarkdown ? (
                <div className="grid grid-cols-2 gap-8 h-full">
-                 <div className="relative border-r border-slate-100 dark:border-slate-800 pr-4">
-                   <textarea
-                     ref={textareaRef}
-                     value={content}
-                     onChange={handleChange}
-                     onKeyDown={handleKeyDown}
-                     placeholder="Start writing..."
-                     className="w-full min-h-[50vh] overflow-hidden resize-none text-lg text-slate-600 dark:text-slate-300 leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-600 border-none outline-none bg-transparent font-mono transition-colors"
-                     spellCheck={false}
-                   />
+                  <div className="relative border-r pr-4" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <textarea
+                      ref={textareaRef}
+                      value={content}
+                      onChange={handleChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Start writing..."
+                      className="w-full min-h-[50vh] overflow-hidden resize-none text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
+                      style={{ color: 'var(--text-primary)', caretColor: 'var(--text-primary)' }}
+                      spellCheck={false}
+                    />
                    <SlashMenu isOpen={slashMenu.isOpen} position={{ top: slashMenu.top, left: slashMenu.left }} filter={slashMenu.filter} selectedIndex={slashMenu.selectedIndex} onSelect={applySlashCommand} onClose={() => setSlashMenu(prev => ({ ...prev, isOpen: false }))} />
                  </div>
-                 <div className="markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed text-slate-700 dark:text-slate-300 h-full overflow-y-auto">
+                   <div className="markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed h-full overflow-y-auto">
                    {content ? (
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
                     components={{
                       pre: CodeBlock,
-                      code: OldCodeBlock,
+                      code: MermaidCodeBlock,
                     }}
                   >
                     {content}
                   </ReactMarkdown>
                 ) : (
-                  <span className="text-slate-300 dark:text-slate-600 italic">Preview...</span>
+                   <span className="italic" style={{ color: 'var(--text-muted)' }}>Preview...</span>
                 )}
                  </div>
                </div>
              ) : isPreview && isMarkdown ? (
-               <div className="max-w-3xl mx-auto markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed text-slate-700 dark:text-slate-300 min-h-[50vh]">
+                <div className="max-w-3xl markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed min-h-[50vh]">
                  {content ? (
                 <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
                   components={{
                     pre: CodeBlock,
-                    code: OldCodeBlock,
+                    code: MermaidCodeBlock,
                   }}
                 >
                   {content}
                 </ReactMarkdown>
               ) : (
-                <span className="text-slate-300 dark:text-slate-600 italic">No content to preview</span>
+                <span className="italic" style={{ color: 'var(--text-muted)' }}>No content to preview</span>
               )}
                </div>
              ) : (
-               <div className="relative max-w-3xl mx-auto">
-                 <textarea
-                   ref={textareaRef}
-                   value={content}
-                   onChange={handleChange}
-                   onKeyDown={handleKeyDown}
-                   placeholder={isMarkdown ? "Start writing or type '/' for commands..." : "Start writing..."}
-                   className="w-full min-h-[50vh] overflow-hidden resize-none text-lg text-slate-600 dark:text-slate-300 leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-600 border-none outline-none bg-transparent font-mono transition-colors"
-                   spellCheck={false}
-                 />
+               <div className="relative max-w-3xl">
+                  <textarea
+                    ref={textareaRef}
+                    value={content}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder={isMarkdown ? "Start writing or type '/' for commands..." : "Start writing..."}
+                    className="w-full min-h-[50vh] overflow-hidden resize-none text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
+                    style={{ color: 'var(--text-primary)', caretColor: 'var(--text-primary)' }}
+                    spellCheck={false}
+                  />
                  <SlashMenu isOpen={slashMenu.isOpen} position={{ top: slashMenu.top, left: slashMenu.left }} filter={slashMenu.filter} selectedIndex={slashMenu.selectedIndex} onSelect={applySlashCommand} onClose={() => setSlashMenu(prev => ({ ...prev, isOpen: false }))} />
                </div>
              )}
@@ -785,13 +827,13 @@ export const Editor: React.FC<EditorProps> = ({
       )}
 
       {/* Status Bar */}
-      <div className="h-8 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end px-4 gap-4 text-[10px] text-slate-400 dark:text-slate-500 font-mono select-none">
+      <div className="h-8 flex items-center justify-end px-4 gap-4 text-[10px] font-mono select-none" style={{ background: 'var(--bg-primary)', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
           {!isVisualEditor && (
             <>
               <div className="flex items-center gap-1.5"><AlignLeft className="w-3 h-3" /><span>{stats.wordCount} words</span></div>
-              <div className="w-px h-3 bg-slate-200 dark:bg-slate-800"></div>
+              <div className="w-px h-3" style={{ background: 'var(--border-primary)' }}></div>
               <div><span>{stats.charCount} chars</span></div>
-              <div className="w-px h-3 bg-slate-200 dark:bg-slate-800"></div>
+              <div className="w-px h-3" style={{ background: 'var(--border-primary)' }}></div>
               <div><span>{stats.readingTime} min read</span></div>
             </>
           )}

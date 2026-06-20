@@ -96,7 +96,8 @@ function toCloudNote(note: Note): Partial<CloudNote> {
 function fromCloudNote(cn: CloudNote): Note {
   let tags: string[] = [];
   try {
-    tags = JSON.parse(cn.tags);
+    const parsed = JSON.parse(cn.tags);
+    tags = Array.isArray(parsed) ? parsed : [];
   } catch {}
 
   return {
