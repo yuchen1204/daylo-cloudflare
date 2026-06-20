@@ -79,25 +79,33 @@ async function authenticate(request: Request, env: Env): Promise<JwtPayload | nu
   return verifyJwt(auth.slice(7), env.JWT_SECRET);
 }
 
-async function validateApiKey(request: Request, env: Env, userId?: string): Promise<boolean> {
+async function validateApiKey(request: Request, env: Env, userId?: string): Promise<{ valid: boolean; userId?: string }> {
   const apiKey = request.headers.get('X-API-Key');
-  if (!apiKey) return false;
+  if (!apiKey) return { valid: false };
   
   // Check per-user API key in database
+  const keyHash = await hashPassword(apiKey);
+  
+  // If we have a userId from JWT, check that specific user
   if (userId) {
-    const keyHash = await hashPassword(apiKey);
     const existingKey = await env.DB.prepare('SELECT id FROM api_keys WHERE user_id = ? AND key_hash = ?')
       .bind(userId, keyHash)
       .first();
-    if (existingKey) return true;
+    if (existingKey) return { valid: true, userId };
   }
+  
+  // Otherwise, find any user with this API key
+  const keyRecord = await env.DB.prepare('SELECT user_id FROM api_keys WHERE key_hash = ?')
+    .bind(keyHash)
+    .first<{ user_id: string }>();
+  if (keyRecord) return { valid: true, userId: keyRecord.user_id };
   
   // Fallback to global MCP_API_KEY for backward compatibility
   if (env.MCP_API_KEY && apiKey === env.MCP_API_KEY) {
-    return true;
+    return { valid: true };
   }
   
-  return false;
+  return { valid: false };
 }
 
 function createSSEStream(): { readable: ReadableStream; writer: WritableStreamDefaultWriter } {
@@ -255,7 +263,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (path === '/api/mcp/sse' && method === 'GET') {
     // Get userId from token if available
     const authUser = await authenticate(request, env);
-    if (!await validateApiKey(request, env, authUser?.sub)) {
+    const apiKeyResult = await validateApiKey(request, env, authUser?.sub);
+    if (!apiKeyResult.valid) {
       return json({ error: 'Invalid API key' }, 401);
     }
 
@@ -281,9 +290,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (path === '/api/mcp/messages' && method === 'POST') {
     // Get userId from token if available
     const authUser = await authenticate(request, env);
-    if (!await validateApiKey(request, env, authUser?.sub)) {
+    const apiKeyResult = await validateApiKey(request, env, authUser?.sub);
+    if (!apiKeyResult.valid) {
       return json({ error: 'Invalid API key' }, 401);
     }
+    const mcpUserId = apiKeyResult.userId;
 
     try {
       const body = await request.json<{ method: string; params?: Record<string, unknown>; id?: string | number }>();
@@ -314,13 +325,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
 
         try {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) {
-            throw new Error('No users found in database');
+          if (!mcpUserId) {
+            throw new Error('No user associated with this API key');
           }
-          const userId = userResult.id;
 
-          const result = await tool.handler(toolArgs, env.DB, userId);
+          const result = await tool.handler(toolArgs, env.DB, mcpUserId);
           const { chunks, final } = createChunkedResult(result);
 
           return json({
@@ -344,10 +353,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
         const noteMatch = uri.match(/^note:\/\/\/(.+)$/);
         if (noteMatch) {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) throw new Error('No users found');
+          if (!mcpUserId) throw new Error('No user associated with this API key');
 
-          const result = await readNoteResource(noteMatch[1], env.DB, userResult.id);
+          const result = await readNoteResource(noteMatch[1], env.DB, mcpUserId);
           return json({
             jsonrpc: '2.0',
             id: body.id,
@@ -357,10 +365,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
         const notebookMatch = uri.match(/^notebook:\/\/\/(.+)$/);
         if (notebookMatch) {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) throw new Error('No users found');
+          if (!mcpUserId) throw new Error('No user associated with this API key');
 
-          const result = await listNotebookResources(notebookMatch[1], env.DB, userResult.id);
+          const result = await listNotebookResources(notebookMatch[1], env.DB, mcpUserId);
           return json({
             jsonrpc: '2.0',
             id: body.id,
