@@ -38,7 +38,18 @@ CREATE TABLE IF NOT EXISTS settings (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  name TEXT DEFAULT 'default',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_notebook ON notes(notebook_id);
 CREATE INDEX IF NOT EXISTS idx_notes_public ON notes(public_link_id) WHERE is_public = 1;
 CREATE INDEX IF NOT EXISTS idx_notebooks_user ON notebooks(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
