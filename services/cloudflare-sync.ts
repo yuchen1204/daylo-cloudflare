@@ -298,3 +298,31 @@ export const cloudSyncService = {
     }
   },
 };
+
+// Password update
+export async function updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiFetch('/api/auth/password', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+// Get API key
+export async function getApiKey(): Promise<{ key: string | null; createdAt: number | null }> {
+  return apiFetch<{ key: string | null; createdAt: number | null }>('/api/auth/api-key');
+}
+
+// Generate new API key
+export async function generateApiKey(): Promise<string> {
+  const result = await apiFetch<{ key: string }>('/api/auth/api-key', {
+    method: 'POST',
+  });
+  return result.key;
+}
+
+// Revoke API key
+export async function revokeApiKey(): Promise<void> {
+  await apiFetch('/api/auth/api-key', {
+    method: 'DELETE',
+  });
+}
