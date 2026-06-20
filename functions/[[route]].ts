@@ -311,6 +311,31 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     try {
       const body = await request.json<{ method: string; params?: Record<string, unknown>; id?: string | number }>();
 
+      // Handle initialize
+      if (body.method === 'initialize') {
+        return json({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: {
+            protocolVersion: body.params?.protocolVersion || '2024-11-05',
+            capabilities: {
+              tools: { listChanged: false },
+              resources: { subscribe: false, listChanged: false },
+            },
+            serverInfo: {
+              name: 'daylo',
+              version: '1.0.0',
+            },
+          },
+        });
+      }
+
+      // Handle notifications/initialized
+      if (body.method === 'notifications/initialized') {
+        // No response needed for notifications
+        return new Response(null, { status: 204 });
+      }
+
       // Handle tools/list
       if (body.method === 'tools/list') {
         const { getToolList } = await import('./mcp-tools');
