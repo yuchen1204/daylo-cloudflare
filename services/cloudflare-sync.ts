@@ -1,7 +1,7 @@
 import { Note, Notebook, AppSettings } from '../types';
 import { saveNote, saveNotebook, deleteNote, deleteNotebook, initializeData } from './storage';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://daylo-api.YOUR_SUBDOMAIN.workers.dev';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 interface AuthResponse {
   token: string;

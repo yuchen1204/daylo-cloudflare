@@ -111,6 +111,58 @@ function formatSSE(event: string, data: string): string {
   return `event: ${event}\ndata: ${data}\n\n`;
 }
 
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE TABLE IF NOT EXISTS notebooks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT,
+  icon TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  notebook_id TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  format TEXT NOT NULL DEFAULT 'markdown',
+  tags TEXT NOT NULL DEFAULT '[]',
+  is_public INTEGER NOT NULL DEFAULT 0,
+  public_link_id TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (notebook_id) REFERENCES notebooks(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS settings (
+  user_id TEXT PRIMARY KEY,
+  data TEXT NOT NULL DEFAULT '{}',
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`;
+
+let dbInitialized = false;
+
+async function ensureDbInitialized(db: D1Database) {
+  if (dbInitialized) return;
+  try {
+    const stmts = SCHEMA_SQL.split(';').filter(s => s.trim()).map(sql => db.prepare(sql));
+    await db.batch(stmts);
+    dbInitialized = true;
+  } catch {
+    dbInitialized = true;
+  }
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -122,6 +174,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (!path.startsWith('/api/')) {
     return context.next();
   }
+
+  await ensureDbInitialized(env.DB);
 
   if (method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders(origin) });
@@ -173,6 +227,141 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       .bind(linkId)
       .first();
     return note ? json(note) : json({ error: 'Not found' }, 404);
+  }
+
+  // MCP SSE endpoint (no JWT auth, uses API key) - must be before auth check
+  if (path === '/api/mcp/sse' && method === 'GET') {
+    if (!validateApiKey(request, env)) {
+      return json({ error: 'Invalid API key' }, 401);
+    }
+
+    const sessionId = crypto.randomUUID();
+    const messageUrl = `${url.origin}/api/mcp/messages?session=${sessionId}`;
+
+    const { readable, writer } = createSSEStream();
+
+    const sseResponse = formatSSE('endpoint', JSON.stringify({ endpoint: messageUrl }));
+    writer.write(sseResponse);
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
+  // MCP Messages endpoint (no JWT auth, uses API key) - must be before auth check
+  if (path === '/api/mcp/messages' && method === 'POST') {
+    if (!validateApiKey(request, env)) {
+      return json({ error: 'Invalid API key' }, 401);
+    }
+
+    try {
+      const body = await request.json<{ method: string; params?: Record<string, unknown>; id?: string | number }>();
+
+      // Handle tools/list
+      if (body.method === 'tools/list') {
+        const { getToolList } = await import('./mcp-tools');
+        return json({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: { tools: getToolList() },
+        });
+      }
+
+      // Handle tools/call
+      if (body.method === 'tools/call') {
+        const { getTool, createResult, createChunkedResult } = await import('./mcp-tools');
+        const toolName = body.params?.name as string;
+        const toolArgs = (body.params?.arguments as Record<string, unknown>) || {};
+
+        const tool = getTool(toolName);
+        if (!tool) {
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            error: { code: -32601, message: `Tool not found: ${toolName}` },
+          });
+        }
+
+        try {
+          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
+          if (!userResult) {
+            throw new Error('No users found in database');
+          }
+          const userId = userResult.id;
+
+          const result = await tool.handler(toolArgs, env.DB, userId);
+          const { chunks, final } = createChunkedResult(result);
+
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: final,
+          });
+        } catch (error) {
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            error: { code: -32603, message: (error as Error).message },
+          });
+        }
+      }
+
+      // Handle resources/read
+      if (body.method === 'resources/read') {
+        const { readNoteResource, listNotebookResources } = await import('./mcp-resources');
+        const uri = body.params?.uri as string;
+
+        const noteMatch = uri.match(/^note:\/\/\/(.+)$/);
+        if (noteMatch) {
+          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
+          if (!userResult) throw new Error('No users found');
+
+          const result = await readNoteResource(noteMatch[1], env.DB, userResult.id);
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            result,
+          });
+        }
+
+        const notebookMatch = uri.match(/^notebook:\/\/\/(.+)$/);
+        if (notebookMatch) {
+          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
+          if (!userResult) throw new Error('No users found');
+
+          const result = await listNotebookResources(notebookMatch[1], env.DB, userResult.id);
+          return json({
+            jsonrpc: '2.0',
+            id: body.id,
+            result,
+          });
+        }
+
+        return json({
+          jsonrpc: '2.0',
+          id: body.id,
+          error: { code: -32602, message: `Invalid URI: ${uri}` },
+        });
+      }
+
+      // Unknown method
+      return json({
+        jsonrpc: '2.0',
+        id: body.id,
+        error: { code: -32601, message: `Method not found: ${body.method}` },
+      });
+    } catch (error) {
+      return json({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32600, message: 'Invalid request' },
+      });
+    }
   }
 
   // All other routes require auth
@@ -360,141 +549,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     }
 
     return json({ success: true });
-  }
-
-  // MCP SSE endpoint
-  if (path === '/api/mcp/sse' && method === 'GET') {
-    if (!validateApiKey(request, env)) {
-      return json({ error: 'Invalid API key' }, 401);
-    }
-
-    const sessionId = crypto.randomUUID();
-    const messageUrl = `${url.origin}/api/mcp/messages?session=${sessionId}`;
-
-    const { readable, writer } = createSSEStream();
-
-    const sseResponse = formatSSE('endpoint', JSON.stringify({ endpoint: messageUrl }));
-    writer.write(sseResponse);
-
-    return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  }
-
-  // MCP Messages endpoint
-  if (path === '/api/mcp/messages' && method === 'POST') {
-    if (!validateApiKey(request, env)) {
-      return json({ error: 'Invalid API key' }, 401);
-    }
-
-    try {
-      const body = await request.json<{ method: string; params?: Record<string, unknown>; id?: string | number }>();
-
-      // Handle tools/list
-      if (body.method === 'tools/list') {
-        const { getToolList } = await import('./mcp-tools');
-        return json({
-          jsonrpc: '2.0',
-          id: body.id,
-          result: { tools: getToolList() },
-        });
-      }
-
-      // Handle tools/call
-      if (body.method === 'tools/call') {
-        const { getTool, createResult, createChunkedResult } = await import('./mcp-tools');
-        const toolName = body.params?.name as string;
-        const toolArgs = (body.params?.arguments as Record<string, unknown>) || {};
-
-        const tool = getTool(toolName);
-        if (!tool) {
-          return json({
-            jsonrpc: '2.0',
-            id: body.id,
-            error: { code: -32601, message: `Tool not found: ${toolName}` },
-          });
-        }
-
-        try {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) {
-            throw new Error('No users found in database');
-          }
-          const userId = userResult.id;
-
-          const result = await tool.handler(toolArgs, env.DB, userId);
-          const { chunks, final } = createChunkedResult(result);
-
-          return json({
-            jsonrpc: '2.0',
-            id: body.id,
-            result: final,
-          });
-        } catch (error) {
-          return json({
-            jsonrpc: '2.0',
-            id: body.id,
-            error: { code: -32603, message: (error as Error).message },
-          });
-        }
-      }
-
-      // Handle resources/read
-      if (body.method === 'resources/read') {
-        const { readNoteResource, listNotebookResources } = await import('./mcp-resources');
-        const uri = body.params?.uri as string;
-
-        const noteMatch = uri.match(/^note:\/\/\/(.+)$/);
-        if (noteMatch) {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) throw new Error('No users found');
-
-          const result = await readNoteResource(noteMatch[1], env.DB, userResult.id);
-          return json({
-            jsonrpc: '2.0',
-            id: body.id,
-            result,
-          });
-        }
-
-        const notebookMatch = uri.match(/^notebook:\/\/\/(.+)$/);
-        if (notebookMatch) {
-          const userResult = await env.DB.prepare('SELECT id FROM users LIMIT 1').first<{ id: string }>();
-          if (!userResult) throw new Error('No users found');
-
-          const result = await listNotebookResources(notebookMatch[1], env.DB, userResult.id);
-          return json({
-            jsonrpc: '2.0',
-            id: body.id,
-            result,
-          });
-        }
-
-        return json({
-          jsonrpc: '2.0',
-          id: body.id,
-          error: { code: -32602, message: `Invalid URI: ${uri}` },
-        });
-      }
-
-      // Unknown method
-      return json({
-        jsonrpc: '2.0',
-        id: body.id,
-        error: { code: -32601, message: `Method not found: ${body.method}` },
-      });
-    } catch (error) {
-      return json({
-        jsonrpc: '2.0',
-        id: null,
-        error: { code: -32600, message: 'Invalid request' },
-      });
-    }
   }
 
   return json({ error: 'Not found' }, 404);
