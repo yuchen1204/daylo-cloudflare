@@ -32,6 +32,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { Share2 } from 'lucide-react';
 import { HistoryCompareModal } from './HistoryCompareModal';
 import { LoginModal } from './LoginModal'; // Added
+import { ProfileModal } from './ProfileModal';
 import { getTagColor } from '../constants';
 import { 
   DndContext, 
@@ -274,6 +275,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Login Modal State
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Creation States
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
@@ -726,9 +728,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User Auth Footer - NEW */}
         <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
            {user ? (
-             <button onClick={() => setShowLogoutConfirm(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+             <button onClick={() => setIsProfileModalOpen(true)} className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-2 overflow-hidden">
-                   <UserIcon className="w-4 h-4" />
+                   <img 
+                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=6366f1&color=fff&size=32`}
+                     alt="Avatar"
+                     className="w-6 h-6 rounded-full"
+                     onError={(e) => {
+                       e.currentTarget.style.display = 'none';
+                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                     }}
+                   />
+                   <div className="hidden w-6 h-6 rounded-full bg-indigo-500 items-center justify-center">
+                     <UserIcon className="w-3 h-3 text-white" />
+                   </div>
                    <div className="flex flex-col items-start truncate">
                       <span className="text-xs font-semibold">{user.email?.split('@')[0]}</span>
                       <span className="text-[10px] text-emerald-500 flex items-center gap-1">
@@ -806,6 +819,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <ConfirmModal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} title="Sign Out" message="Are you sure you want to sign out? Your local data will remain, but cloud sync will stop." confirmText="Sign Out" />
       <HistoryCompareModal isOpen={!!selectedHistory} onClose={() => setSelectedHistory(null)} historyEntry={selectedHistory} currentContent={currentContent} onRestore={onRestoreHistory} />
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={onLogin} />
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} />
     </DndContext>
   );
 };
