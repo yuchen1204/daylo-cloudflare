@@ -259,6 +259,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return note ? json(note) : json({ error: 'Not found' }, 404);
   }
 
+  // MCP SSE endpoint - POST returns 405 to indicate old SSE protocol only
+  if (path === '/api/mcp/sse' && method === 'POST') {
+    return new Response('Method Not Allowed', {
+      status: 405,
+      headers: {
+        'Allow': 'GET',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
   // MCP SSE endpoint (no JWT auth, uses API key) - must be before auth check
   if (path === '/api/mcp/sse' && method === 'GET') {
     // Get userId from token if available
