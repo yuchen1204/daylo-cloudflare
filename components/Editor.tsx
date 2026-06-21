@@ -632,44 +632,40 @@ export const Editor: React.FC<EditorProps> = ({
                      <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                    </div>
 
-                    {/* More button + vertical strip */}
-                    <div className="flex flex-col items-center">
+                    {/* More button + vertical strip (connected) */}
+                    <div
+                      className="flex flex-col items-center transition-all duration-300"
+                      style={{
+                        background: isToolbarExpanded ? 'var(--bg-secondary)' : 'transparent',
+                        borderRadius: isToolbarExpanded ? '8px 8px 12px 12px' : '8px',
+                        border: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
+                        boxShadow: isToolbarExpanded ? 'var(--shadow-lg)' : 'none',
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
-                        onClick={(e) => { e.stopPropagation(); setIsToolbarExpanded(!isToolbarExpanded); }}
-                        className="p-2 rounded-t-lg transition-all hover:bg-[var(--interactive-hover)]"
+                        onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                        className="p-2 transition-all hover:bg-[var(--interactive-hover)]"
                         style={{
                           color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)',
-                          background: isToolbarExpanded ? 'var(--bg-secondary)' : undefined,
-                          borderBottomLeftRadius: isToolbarExpanded ? 0 : undefined,
-                          borderBottomRightRadius: isToolbarExpanded ? 0 : undefined,
+                          borderRadius: isToolbarExpanded ? '6px 6px 0 0' : '7px',
                         }}
                         title="More Actions"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {/* Vertical strip - connected to button */}
+                      {/* Vertical strip */}
                       <div
                         className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out"
                         style={{
                           maxHeight: isToolbarExpanded ? '140px' : '0px',
                           opacity: isToolbarExpanded ? 1 : 0,
-                          background: isToolbarExpanded ? 'var(--bg-secondary)' : 'transparent',
-                          borderBottomLeftRadius: isToolbarExpanded ? 12 : 0,
-                          borderBottomRightRadius: isToolbarExpanded ? 12 : 0,
-                          borderTopLeftRadius: 0,
-                          borderTopRightRadius: 0,
-                          borderLeft: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
-                          borderRight: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
-                          borderBottom: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
-                          boxShadow: isToolbarExpanded ? 'var(--shadow-lg)' : 'none',
+                          width: isToolbarExpanded ? '40px' : '0px',
                         }}
                       >
-                        <div
-                          className="flex flex-col items-center py-1"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="flex flex-col items-center pb-2">
                            {/* Share */}
                            <button
                              onClick={() => {
