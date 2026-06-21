@@ -634,8 +634,8 @@ export const Editor: React.FC<EditorProps> = ({
 
                    {/* More button - toggles dropdown menu */}
                    <div className="relative">
-                     <button
-                       onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setIsToolbarExpanded(!isToolbarExpanded); }}
                        className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
                        style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
                        title="More Actions"
@@ -645,11 +645,12 @@ export const Editor: React.FC<EditorProps> = ({
 
                      {/* Dropdown Menu */}
                      {isToolbarExpanded && (
-                       <div
-                         className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-44 animate-in fade-in zoom-in-95 duration-100"
-                         style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
-                         onPointerDown={(e) => e.stopPropagation()}
-                       >
+                        <div
+                          className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-44 animate-in fade-in zoom-in-95 duration-100"
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                          {/* Share */}
                          <button
                            onClick={() => {
