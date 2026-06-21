@@ -633,30 +633,33 @@ export const Editor: React.FC<EditorProps> = ({
                    </div>
 
                     {/* More button - vertical pill strip */}
-                    <div className="relative flex flex-col items-center">
+                    <div className="relative">
                       <button
                         onClick={(e) => { e.stopPropagation(); setIsToolbarExpanded(!isToolbarExpanded); }}
                         className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
                         style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
                         title="More Actions"
                       >
-                        <ChevronDown
-                          className="w-4 h-4 transition-transform duration-300"
-                          style={{ transform: isToolbarExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                        />
+                        <MoreVertical className="w-4 h-4" />
                       </button>
 
                       {/* Vertical pill strip */}
                       <div
-                        className="overflow-hidden transition-all duration-300 ease-in-out z-[60]"
+                        className="absolute top-full right-1/2 translate-x-1/2 z-[60]"
                         style={{
-                          maxHeight: isToolbarExpanded ? '160px' : '0px',
                           opacity: isToolbarExpanded ? 1 : 0,
+                          pointerEvents: isToolbarExpanded ? 'auto' : 'none',
+                          transition: 'opacity 0.25s ease',
                         }}
                       >
                         <div
-                          className="flex flex-col items-center gap-1 p-1.5 mt-1 rounded-full shadow-xl"
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+                          className="flex flex-col items-center gap-1 p-1.5 mt-2 rounded-full shadow-xl"
+                          style={{
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-primary)',
+                            transform: isToolbarExpanded ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.9)',
+                            transition: 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+                          }}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -690,6 +693,8 @@ export const Editor: React.FC<EditorProps> = ({
                              <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
                            </button>
 
+                           <div className="w-5 h-px" style={{ background: 'var(--border-subtle)' }} />
+
                            {/* Reminder */}
                            <div className="flex items-center justify-center" onClick={() => setIsToolbarExpanded(false)}>
                              <ReminderPicker
@@ -697,7 +702,7 @@ export const Editor: React.FC<EditorProps> = ({
                                onSet={handleSetReminder}
                                onClear={handleClearReminder}
                                onComplete={handleCompleteReminder}
-                              />
+                             />
                            </div>
                         </div>
                       </div>
