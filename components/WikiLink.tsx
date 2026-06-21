@@ -34,7 +34,7 @@ export const WikiLink: React.FC<WikiLinkProps> = ({ title, note, onClick }) => {
       
       {isHovered && note && (
         <div 
-          className="absolute bottom-full left-0 mb-2 w-64 p-3 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute bottom-full left-0 mb-2 w-64 max-w-[80vw] p-3 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
         >
           <div className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{note.title}</div>

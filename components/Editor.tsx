@@ -3,7 +3,7 @@ import { Note } from '../types';
 import { 
   Download, 
   Eye, EyeOff, Star, AlignLeft, Columns, Tag, X, Maximize, Minimize, Network,
-  File, Image, FileJson, Upload, Share2, Copy, Lock, MoreVertical, ChevronDown
+  File, Image, FileJson, Upload, Share2, Copy, Lock, ChevronRight
 } from 'lucide-react';
 import { downloadNote } from '../services/storage';
 import { cloudSyncService } from '../services/cloudflare-sync';
@@ -50,17 +50,17 @@ const CodeBlock = ({ children }) => {
       {/* Window Header */}
       <div className="flex items-center h-9 px-3 backdrop-blur-sm" style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-primary)' }}>
         <div className="flex items-center gap-2">
-          <div onClick={handleCopy} className="w-3.5 h-3.5 bg-red-400 dark:bg-red-500 rounded-full flex items-center justify-center cursor-pointer group">
+          <div onClick={handleCopy} className="w-8 h-8 bg-red-400 dark:bg-red-500 rounded-full flex items-center justify-center cursor-pointer group relative">
             <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-red-800 dark:text-red-900 opacity-0 group-hover:opacity-100 transition-opacity">
               {isCopied ? <path d="M20 6 9 17l-5-5"/> : <><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>}
             </svg>
           </div>
-          <div onClick={() => setIsCollapsed(!isCollapsed)} className="w-3.5 h-3.5 bg-yellow-400 dark:bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer group">
+          <div onClick={() => setIsCollapsed(!isCollapsed)} className="w-8 h-8 bg-yellow-400 dark:bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer group relative">
              <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-800 dark:text-yellow-900 opacity-0 group-hover:opacity-100 transition-opacity">
               {isCollapsed ? <><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></> : <line x1="5" x2="19" y1="12" y2="12"/>}
             </svg>
           </div>
-          <div onClick={() => setIsFullScreen(!isFullScreen)} className="w-3.5 h-3.5 bg-green-400 dark:bg-green-500 rounded-full flex items-center justify-center cursor-pointer group">
+          <div onClick={() => setIsFullScreen(!isFullScreen)} className="w-8 h-8 bg-green-400 dark:bg-green-500 rounded-full flex items-center justify-center cursor-pointer group relative">
             <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-green-800 dark:text-green-900 opacity-0 group-hover:opacity-100 transition-opacity">
               {isFullScreen ? <><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></> : <><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2S0 0 1-2-2h-3"/></>}
             </svg>
@@ -632,40 +632,50 @@ export const Editor: React.FC<EditorProps> = ({
                      <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                    </div>
 
-                    {/* More button + vertical strip (connected) */}
+                    {/* Rotating circular button + vertical capsule bar */}
                     <div
-                      className="flex flex-col items-center transition-all duration-300"
-                      style={{
-                        background: isToolbarExpanded ? 'var(--bg-secondary)' : 'transparent',
-                        borderRadius: isToolbarExpanded ? '8px 8px 12px 12px' : '8px',
-                        border: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
-                        boxShadow: isToolbarExpanded ? 'var(--shadow-lg)' : 'none',
-                      }}
+                      className="relative"
+                      style={{ width: '36px', height: '36px' }}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
-                        className="p-2 transition-all hover:bg-[var(--interactive-hover)]"
-                        style={{
-                          color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)',
-                          borderRadius: isToolbarExpanded ? '6px 6px 0 0' : '7px',
-                        }}
-                        title="More Actions"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-
-                      {/* Vertical strip */}
+                      {/* Unified capsule container */}
                       <div
-                        className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out"
                         style={{
-                          maxHeight: isToolbarExpanded ? '140px' : '0px',
-                          opacity: isToolbarExpanded ? 1 : 0,
-                          width: isToolbarExpanded ? '40px' : '0px',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '36px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: isToolbarExpanded ? '18px 18px 18px 18px' : '50%',
+                          boxShadow: isToolbarExpanded ? 'var(--shadow-lg)' : 'none',
+                          transition: 'all 300ms ease-out',
+                          overflow: 'hidden',
                         }}
                       >
-                        <div className="flex flex-col items-center pb-2">
+                        <button
+                          onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                          className="w-9 h-9 flex items-center justify-center transition-all duration-300 hover:bg-[var(--interactive-hover)]"
+                          style={{
+                            color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)',
+                            background: 'transparent',
+                            border: 'none',
+                          }}
+                          title="More Actions"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+
+                        {/* Vertical capsule bar content */}
+                        <div
+                          className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out"
+                          style={{
+                            maxHeight: isToolbarExpanded ? '140px' : '0px',
+                            opacity: isToolbarExpanded ? 1 : 0,
+                          }}
+                        >
+                          <div className="flex flex-col items-center pb-2 gap-1">
                            {/* Share */}
                            <button
                              onClick={() => {
@@ -677,7 +687,7 @@ export const Editor: React.FC<EditorProps> = ({
                                setIsToolbarExpanded(false);
                                note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
                              }}
-                             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-[var(--interactive-hover)] ${
+                             className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)] ${
                                note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
                              }`}
                              style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
@@ -689,7 +699,7 @@ export const Editor: React.FC<EditorProps> = ({
                            {/* Pin */}
                            <button
                              onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
-                             className="flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-[var(--interactive-hover)]"
+                             className="flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)]"
                              style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
                              title={note.isPinned ? "Unpin" : "Pin"}
                            >
@@ -706,6 +716,7 @@ export const Editor: React.FC<EditorProps> = ({
                              />
                            </div>
                         </div>
+                      </div>
                       </div>
                     </div>
                 </>
@@ -791,7 +802,7 @@ export const Editor: React.FC<EditorProps> = ({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto relative" onClick={() => textareaRef.current?.focus()}>
-          <div className={`py-10 px-8 min-h-full pb-20 ${isSplitView ? 'max-w-full' : 'max-w-3xl'}`}>
+          <div className={`py-6 sm:py-10 px-4 sm:px-8 min-h-full pb-20 ${isSplitView ? 'max-w-full' : 'max-w-3xl'}`}>
 
              <div 
                className="max-w-3xl mb-6"
@@ -803,7 +814,7 @@ export const Editor: React.FC<EditorProps> = ({
                  value={title}
                  onChange={(e) => setTitle(e.target.value)}
                  placeholder="Note Title"
-                   className="w-full text-4xl font-bold placeholder:border-none outline-none bg-transparent transition-colors"
+                    className="w-full text-2xl sm:text-3xl md:text-4xl font-bold placeholder:border-none outline-none bg-transparent transition-colors"
                    style={{ color: 'var(--text-primary)' }}
                />
                
@@ -863,7 +874,7 @@ export const Editor: React.FC<EditorProps> = ({
              </div>
              
              {isSplitView && isMarkdown ? (
-               <div className="grid grid-cols-2 gap-8 h-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 h-full">
                   <div className="relative border-r pr-4" style={{ borderColor: 'var(--border-subtle)' }}>
                     <textarea
                       ref={textareaRef}
@@ -871,13 +882,13 @@ export const Editor: React.FC<EditorProps> = ({
                       onChange={handleChange}
                       onKeyDown={handleKeyDown}
                       placeholder="Start writing..."
-                      className="w-full min-h-[50vh] overflow-hidden resize-none text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
+                       className="w-full min-h-[50vh] overflow-hidden resize-none text-base sm:text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
                       style={{ color: 'var(--text-primary)', caretColor: 'var(--text-primary)' }}
                       spellCheck={false}
                     />
                    <SlashMenu isOpen={slashMenu.isOpen} position={{ top: slashMenu.top, left: slashMenu.left }} filter={slashMenu.filter} selectedIndex={slashMenu.selectedIndex} onSelect={applySlashCommand} onClose={() => setSlashMenu(prev => ({ ...prev, isOpen: false }))} />
                  </div>
-                   <div className="markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed h-full overflow-y-auto">
+                   <div className="markdown-preview prose dark:prose-invert prose-lg text-base sm:text-lg leading-relaxed h-full overflow-y-auto">
                    {content ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkMath]}
@@ -900,7 +911,7 @@ export const Editor: React.FC<EditorProps> = ({
                  </div>
                </div>
              ) : isPreview && isMarkdown ? (
-                <div className="max-w-3xl markdown-preview prose dark:prose-invert prose-lg text-lg leading-relaxed min-h-[50vh]">
+                <div className="max-w-3xl markdown-preview prose dark:prose-invert prose-lg text-base sm:text-lg leading-relaxed min-h-[50vh]">
                  {content ? (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkMath]}
@@ -929,7 +940,7 @@ export const Editor: React.FC<EditorProps> = ({
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder={isMarkdown ? "Start writing or type '/' for commands..." : "Start writing..."}
-                    className="w-full min-h-[50vh] overflow-hidden resize-none text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
+                    className="w-full min-h-[50vh] overflow-hidden resize-none text-base sm:text-lg leading-relaxed border-none outline-none bg-transparent font-mono transition-colors"
                     style={{ color: 'var(--text-primary)', caretColor: 'var(--text-primary)' }}
                     spellCheck={false}
                   />
