@@ -644,9 +644,9 @@ export const Editor: React.FC<EditorProps> = ({
                      </button>
 
                      {/* Dropdown Menu */}
-                     {isToolbarExpanded && (
+                      {isToolbarExpanded && (
                         <div
-                          className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-44 animate-in fade-in zoom-in-95 duration-100"
+                          className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-10 animate-in fade-in zoom-in-95 duration-100"
                           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
@@ -662,27 +662,29 @@ export const Editor: React.FC<EditorProps> = ({
                              setIsToolbarExpanded(false);
                              note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
                            }}
-                           className={`flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)] ${
+                           className={`flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-[var(--interactive-hover)] ${
                              note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
                            }`}
                            style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
+                           title="Share"
                          >
-                           <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} /> Share
+                           <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
                          </button>
 
                          {/* Pin */}
                          <button
                            onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
-                           className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                           className="flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-[var(--interactive-hover)]"
                            style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
+                           title={note.isPinned ? "Unpin" : "Pin"}
                          >
-                           <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} /> {note.isPinned ? 'Unpin' : 'Pin'}
+                           <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
                          </button>
 
                          <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
 
                          {/* Reminder */}
-                         <div onClick={() => setIsToolbarExpanded(false)}>
+                         <div className="flex items-center justify-center" onClick={() => setIsToolbarExpanded(false)}>
                            <ReminderPicker
                              reminder={note.reminder}
                              onSet={handleSetReminder}
