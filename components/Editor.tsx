@@ -233,6 +233,14 @@ export const Editor: React.FC<EditorProps> = ({
     if (isFocusMode) setIsToolbarExpanded(false);
   }, [isFocusMode]);
 
+  // Close More dropdown when clicking outside
+  useEffect(() => {
+    if (!isToolbarExpanded) return;
+    const handleClick = () => setIsToolbarExpanded(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isToolbarExpanded]);
+
   // Adjust height on content change
   useLayoutEffect(() => {
     if (!isVisualEditor) {
@@ -624,98 +632,72 @@ export const Editor: React.FC<EditorProps> = ({
                      <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                    </div>
 
-                   {/* More button - toggles secondary toolbar */}
-                   <button
-                     onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
-                     className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
-                     style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                     title="More Actions"
-                   >
-                     <MoreVertical className="w-4 h-4" />
-                   </button>
+                   {/* More button - toggles dropdown menu */}
+                   <div className="relative">
+                     <button
+                       onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                       className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+                       style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                       title="More Actions"
+                     >
+                       <MoreVertical className="w-4 h-4" />
+                     </button>
+
+                     {/* Dropdown Menu */}
+                     {isToolbarExpanded && (
+                       <div
+                         className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-44 animate-in fade-in zoom-in-95 duration-100"
+                         style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+                         onPointerDown={(e) => e.stopPropagation()}
+                       >
+                         {/* Share */}
+                         <button
+                           onClick={() => {
+                             if (!user) {
+                               alert("Please sign in to share notes.");
+                               setIsToolbarExpanded(false);
+                               return;
+                             }
+                             setIsToolbarExpanded(false);
+                             note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
+                           }}
+                           className={`flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)] ${
+                             note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
+                           }`}
+                           style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
+                         >
+                           <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} /> Share
+                         </button>
+
+                         {/* Pin */}
+                         <button
+                           onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
+                           className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                           style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
+                         >
+                           <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} /> {note.isPinned ? 'Unpin' : 'Pin'}
+                         </button>
+
+                         <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
+
+                         {/* Reminder */}
+                         <div onClick={() => setIsToolbarExpanded(false)}>
+                           <ReminderPicker
+                             reminder={note.reminder}
+                             onSet={handleSetReminder}
+                             onClear={handleClearReminder}
+                             onComplete={handleCompleteReminder}
+                           />
+                         </div>
+                       </div>
+                     )}
+                   </div>
                 </>
               )}
           </div>
        </div>
 
-       {/* Secondary Toolbar Row - collapsible */}
-       {!isCanvas && (
-         <div
-           className="overflow-hidden transition-all duration-300 ease-in-out"
-           style={{
-             maxHeight: isToolbarExpanded ? '60px' : '0px',
-             opacity: isToolbarExpanded ? 1 : 0,
-           }}
-         >
-           <div className="flex items-center gap-2 md:gap-3 px-4 md:px-6 pb-2.5 pt-0.5">
-               {/* Share Button */}
-               <div className="relative">
-                  <button 
-                    onClick={() => {
-                      if (!user) {
-                        alert("Please sign in to share notes.");
-                        return;
-                      }
-                      note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all ${
-                      !user 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : note.accessInfo?.isPublic 
-                          ? 'bg-[var(--interactive-active)]' 
-                          : 'hover:bg-[var(--interactive-hover)]'
-                    }`}
-                    style={{ color: !user ? 'var(--text-muted)' : note.accessInfo?.isPublic ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                    title={!user ? "Sign in to Share" : "Share Note"}
-                  >
-                    <Share2 className={`w-3.5 h-3.5 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
-                    <span className="hidden sm:inline">Share</span>
-                  </button>
-                  
-                  {/* Share Menu */}
-                  {isShareMenuOpen && note.accessInfo?.isPublic && (
-                     <div 
-                        className="absolute top-full left-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-56 animate-in fade-in zoom-in-95 duration-100"
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
-                       onPointerDown={(e) => e.stopPropagation()}
-                     >
-                        <div className="px-3 py-2 text-xs border-b mb-1" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
-                           <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Public Link Active</span>
-                        </div>
-                        <button 
-                          onClick={copyShareLink} 
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                           <Copy className="w-4 h-4" /> {showCopyFeedback ? "Copied!" : "Copy Link"}
-                        </button>
-                        <button 
-                          onClick={() => { handleShareToggle(); setIsShareMenuOpen(false); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors text-left"
-                        >
-                           <Lock className="w-4 h-4" /> Make Private
-                        </button>
-                     </div>
-                  )}
-               </div>
-
-               {/* Pin Button */}
-               <button onClick={togglePin} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all ${note.isPinned ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: note.isPinned ? undefined : 'var(--text-muted)' }} title={note.isPinned ? "Unpin Note" : "Pin Note"}>
-                 <Star className={`w-3.5 h-3.5 ${note.isPinned ? "fill-amber-500" : ""}`} />
-                 <span className="hidden sm:inline">{note.isPinned ? 'Unpin' : 'Pin'}</span>
-               </button>
-               
-               {/* Reminder Picker */}
-               <ReminderPicker
-                 reminder={note.reminder}
-                 onSet={handleSetReminder}
-                 onClear={handleClearReminder}
-                 onComplete={handleCompleteReminder}
-               />
-           </div>
-         </div>
-       )}
-      </div>
+       </div>
 
       {/* Editor Area */}
       {isVisualEditor ? (
