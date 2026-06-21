@@ -3,7 +3,7 @@ import { Note } from '../types';
 import { 
   Download, 
   Eye, EyeOff, Star, AlignLeft, Columns, Tag, X, Maximize, Minimize, Network,
-  File, Image, FileJson, Upload, Share2, Copy, Lock
+  File, Image, FileJson, Upload, Share2, Copy, Lock, MoreVertical, ChevronDown
 } from 'lucide-react';
 import { downloadNote } from '../services/storage';
 import { cloudSyncService } from '../services/cloudflare-sync';
@@ -173,6 +173,7 @@ export const Editor: React.FC<EditorProps> = ({
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
   
   // Slash Menu State
   const [slashMenu, setSlashMenu] = useState<{
@@ -220,11 +221,17 @@ export const Editor: React.FC<EditorProps> = ({
     setTagInput("");
     setIsFileMenuOpen(false);
     setIsShareMenuOpen(false);
+    setIsToolbarExpanded(false);
     // Reset height after state update
     if (!isVisualEditor) {
       setTimeout(adjustTextareaHeight, 0);
     }
   }, [note.id]);
+
+  // Close secondary toolbar when entering focus mode
+  useEffect(() => {
+    if (isFocusMode) setIsToolbarExpanded(false);
+  }, [isFocusMode]);
 
   // Adjust height on content change
   useLayoutEffect(() => {
@@ -539,149 +546,175 @@ export const Editor: React.FC<EditorProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full relative transition-colors" style={{ background: 'var(--bg-primary)' }}>
             {/* Top Bar */}
-      <div className={`h-16 border-b flex items-center justify-between px-6 sticky top-0 z-20 transition-all ${isFocusMode ? 'shadow-sm opacity-80 hover:opacity-100' : ''}`} style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}>
-         <div className="flex items-center gap-4">
-             {!isFocusMode && (
-                <button onClick={onToggleSidebar} className="md:hidden" style={{ color: 'var(--text-muted)' }}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-               </button>
-             )}
-              <button onClick={onToggleFocusMode} className={`p-2 rounded-md transition-all ${isFocusMode ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isFocusMode ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
-                {isFocusMode ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-             </button>
-             <div className="flex flex-col">
-               <div className="flex items-center gap-2">
+      <div className="border-b sticky top-0 z-20 transition-all" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}>
+        {/* Primary Toolbar Row */}
+        <div className={`h-14 flex items-center justify-between px-4 md:px-6 ${isFocusMode ? 'shadow-sm opacity-80 hover:opacity-100' : ''}`}>
+          <div className="flex items-center gap-2 md:gap-4">
+              {!isFocusMode && (
+                 <button onClick={onToggleSidebar} className="md:hidden p-1.5 rounded-md hover:bg-[var(--interactive-hover)] transition-colors" style={{ color: 'var(--text-muted)' }}>
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                 </button>
+              )}
+               <button onClick={onToggleFocusMode} className={`p-2 rounded-md transition-all ${isFocusMode ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isFocusMode ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
+                 {isFocusMode ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+              </button>
+              <div className="flex items-center gap-2">
                  {!isFocusMode && <div className="text-xs font-mono hidden sm:block" style={{ color: 'var(--text-muted)' }}>Last edited: {new Date(note.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider ${formatColorClass()}`}>
                    {formatLabel()}
                  </span>
-               </div>
-             </div>
-         </div>
-         <div className="flex items-center gap-3">
-             
-             {/* Share Button */}
-             <div className="relative">
-                <button 
-                  onClick={() => {
-                    if (!user) {
-                      alert("Please sign in to share notes.");
-                      return;
-                    }
-                    note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
-                  }}
-                  className={`p-2 rounded-md transition-all ${
-                    !user 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : note.accessInfo?.isPublic 
-                        ? 'bg-[var(--interactive-active)]' 
-                        : 'hover:bg-[var(--interactive-hover)]'
-                  }`}
-                  style={{ color: !user ? 'var(--text-muted)' : note.accessInfo?.isPublic ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                  title={!user ? "Sign in to Share" : "Share Note"}
-                >
-                  <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
-                </button>
-                
-                {/* Share Menu */}
-                {isShareMenuOpen && note.accessInfo?.isPublic && (
-                   <div 
-                      className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-56 animate-in fade-in zoom-in-95 duration-100"
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
-                     onPointerDown={(e) => e.stopPropagation()}
-                   >
-                      <div className="px-3 py-2 text-xs border-b mb-1" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
-                         <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Public Link Active</span>
-                      </div>
-                      <button 
-                        onClick={copyShareLink} 
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                         <Copy className="w-4 h-4" /> {showCopyFeedback ? "Copied!" : "Copy Link"}
-                      </button>
-                      <button 
-                        onClick={() => { handleShareToggle(); setIsShareMenuOpen(false); }}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors text-left"
-                      >
-                         <Lock className="w-4 h-4" /> Make Private
-                      </button>
-                   </div>
-                )}
-             </div>
-
-                  <button onClick={togglePin} className={`p-2 rounded-md transition-all ${note.isPinned ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: note.isPinned ? undefined : 'var(--text-muted)' }} title={note.isPinned ? "Unpin Note" : "Pin Note"}>
-               <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
-             </button>
-             
-             {/* Reminder Picker */}
-             <ReminderPicker
-               reminder={note.reminder}
-               onSet={handleSetReminder}
-               onClear={handleClearReminder}
-               onComplete={handleCompleteReminder}
-             />
-             
-             {/* NEW CANVAS FILE MENU */}
-             {isCanvas && (
-              <div className="relative">
-                 <button 
-                    onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
-                    className={`p-2 rounded-md transition-all ${isFileMenuOpen ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
-                    style={{ color: isFileMenuOpen ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                    title="Canvas Options"
-                 >
-                    <File className="w-4 h-4" />
-                 </button>
-                 {isFileMenuOpen && (
-                    <div 
-                      className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-48 animate-in fade-in zoom-in-95 duration-100"
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                       <button 
-                         onClick={() => { canvasRef.current?.exportPNG(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
-                         style={{ color: 'var(--text-secondary)' }}
-                       >
-                          <Image className="w-4 h-4" /> Export as PNG
-                       </button>
-                       <button 
-                         onClick={() => { canvasRef.current?.exportJSON(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
-                         style={{ color: 'var(--text-secondary)' }}
-                       >
-                          <FileJson className="w-4 h-4" /> Export as JSON
-                       </button>
-                       <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
-                       <button 
-                         onClick={() => { canvasRef.current?.importJSON(); setIsFileMenuOpen(false); }} 
-                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
-                         style={{ color: 'var(--text-secondary)' }}
-                       >
-                          <Upload className="w-4 h-4" /> Import JSON
-                       </button>
-                    </div>
-                 )}
               </div>
-             )}
+          </div>
+          <div className="flex items-center gap-2 md:gap-3">
+              {/* Canvas File Menu - always visible */}
+              {isCanvas && (
+               <div className="relative">
+                  <button 
+                     onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
+                     className={`p-2 rounded-md transition-all ${isFileMenuOpen ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+                     style={{ color: isFileMenuOpen ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                     title="Canvas Options"
+                  >
+                     <File className="w-4 h-4" />
+                  </button>
+                  {isFileMenuOpen && (
+                     <div 
+                       className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-48 animate-in fade-in zoom-in-95 duration-100"
+                       style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+                       onPointerDown={(e) => e.stopPropagation()}
+                     >
+                        <button 
+                          onClick={() => { canvasRef.current?.exportPNG(); setIsFileMenuOpen(false); }} 
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                           <Image className="w-4 h-4" /> Export as PNG
+                        </button>
+                        <button 
+                          onClick={() => { canvasRef.current?.exportJSON(); setIsFileMenuOpen(false); }} 
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                           <FileJson className="w-4 h-4" /> Export as JSON
+                        </button>
+                        <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
+                        <button 
+                          onClick={() => { canvasRef.current?.importJSON(); setIsFileMenuOpen(false); }} 
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                           <Upload className="w-4 h-4" /> Import JSON
+                        </button>
+                     </div>
+                  )}
+               </div>
+              )}
 
-             {!isCanvas && (
-               <>
-                  <div className="h-6 w-px mx-1" style={{ background: 'var(--border-primary)' }}></div>
-                  <div className="flex p-1 rounded-lg transition-colors"
-                       style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                   {isMarkdown && (
-                     <>
-                        <button onClick={toggleSplitView} className={`p-2 rounded-md transition-all hidden sm:block ${isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title="Split View"><Columns className="w-4 h-4" /></button>
-                        <button onClick={() => !isSplitView && setIsPreview(!isPreview)} className={`p-2 rounded-md transition-all ${isPreview && !isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'} ${isSplitView ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ color: isPreview && !isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isPreview ? "Switch to Edit" : "Switch to Preview"} disabled={isSplitView}>{isPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                     </>
-                   )}
-                    <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
-                 </div>
-               </>
-             )}
+              {/* Non-canvas: View controls + More button */}
+              {!isCanvas && (
+                <>
+                   <div className="flex p-1 rounded-lg transition-colors"
+                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                     {isMarkdown && (
+                       <>
+                          <button onClick={toggleSplitView} className={`p-2 rounded-md transition-all hidden sm:block ${isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title="Split View"><Columns className="w-4 h-4" /></button>
+                          <button onClick={() => !isSplitView && setIsPreview(!isPreview)} className={`p-2 rounded-md transition-all ${isPreview && !isSplitView ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'} ${isSplitView ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ color: isPreview && !isSplitView ? 'var(--text-primary)' : 'var(--text-muted)' }} title={isPreview ? "Switch to Edit" : "Switch to Preview"} disabled={isSplitView}>{isPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                       </>
+                     )}
+                     <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
+                   </div>
+
+                   {/* More button - toggles secondary toolbar */}
+                   <button
+                     onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+                     className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+                     style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                     title="More Actions"
+                   >
+                     <MoreVertical className="w-4 h-4" />
+                   </button>
+                </>
+              )}
+          </div>
+       </div>
+
+       {/* Secondary Toolbar Row - collapsible */}
+       {!isCanvas && (
+         <div
+           className="overflow-hidden transition-all duration-300 ease-in-out"
+           style={{
+             maxHeight: isToolbarExpanded ? '60px' : '0px',
+             opacity: isToolbarExpanded ? 1 : 0,
+           }}
+         >
+           <div className="flex items-center gap-2 md:gap-3 px-4 md:px-6 pb-2.5 pt-0.5">
+               {/* Share Button */}
+               <div className="relative">
+                  <button 
+                    onClick={() => {
+                      if (!user) {
+                        alert("Please sign in to share notes.");
+                        return;
+                      }
+                      note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all ${
+                      !user 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : note.accessInfo?.isPublic 
+                          ? 'bg-[var(--interactive-active)]' 
+                          : 'hover:bg-[var(--interactive-hover)]'
+                    }`}
+                    style={{ color: !user ? 'var(--text-muted)' : note.accessInfo?.isPublic ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                    title={!user ? "Sign in to Share" : "Share Note"}
+                  >
+                    <Share2 className={`w-3.5 h-3.5 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
+                    <span className="hidden sm:inline">Share</span>
+                  </button>
+                  
+                  {/* Share Menu */}
+                  {isShareMenuOpen && note.accessInfo?.isPublic && (
+                     <div 
+                        className="absolute top-full left-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-56 animate-in fade-in zoom-in-95 duration-100"
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+                       onPointerDown={(e) => e.stopPropagation()}
+                     >
+                        <div className="px-3 py-2 text-xs border-b mb-1" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
+                           <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Public Link Active</span>
+                        </div>
+                        <button 
+                          onClick={copyShareLink} 
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left hover:bg-[var(--interactive-hover)]"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                           <Copy className="w-4 h-4" /> {showCopyFeedback ? "Copied!" : "Copy Link"}
+                        </button>
+                        <button 
+                          onClick={() => { handleShareToggle(); setIsShareMenuOpen(false); }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors text-left"
+                        >
+                           <Lock className="w-4 h-4" /> Make Private
+                        </button>
+                     </div>
+                  )}
+               </div>
+
+               {/* Pin Button */}
+               <button onClick={togglePin} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all ${note.isPinned ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-[var(--interactive-hover)]'}`} style={{ color: note.isPinned ? undefined : 'var(--text-muted)' }} title={note.isPinned ? "Unpin Note" : "Pin Note"}>
+                 <Star className={`w-3.5 h-3.5 ${note.isPinned ? "fill-amber-500" : ""}`} />
+                 <span className="hidden sm:inline">{note.isPinned ? 'Unpin' : 'Pin'}</span>
+               </button>
+               
+               {/* Reminder Picker */}
+               <ReminderPicker
+                 reminder={note.reminder}
+                 onSet={handleSetReminder}
+                 onClear={handleClearReminder}
+                 onComplete={handleCompleteReminder}
+               />
+           </div>
          </div>
+       )}
       </div>
 
       {/* Editor Area */}

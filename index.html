@@ -119,6 +119,84 @@
         border-radius: 8px;
         box-shadow: var(--shadow-sm);
       }
+
+      /* Mobile responsive styles */
+      @media (max-width: 640px) {
+        .markdown-preview h1 { font-size: 1.75em; margin: 1.2em 0 0.6em; }
+        .markdown-preview h2 { font-size: 1.4em; margin: 1.1em 0 0.5em; }
+        .markdown-preview h3 { font-size: 1.15em; margin: 1em 0 0.4em; }
+        .markdown-preview h4 { font-size: 1em; margin: 0.9em 0 0.35em; }
+        .markdown-preview p { line-height: 1.65; }
+        .markdown-preview blockquote { padding: 0.75em 1em; margin: 1em 0; }
+        .markdown-preview pre { margin: 1em 0; }
+        .markdown-preview pre code { padding: 0.75em 1em; font-size: 0.85em; }
+        .markdown-preview table { font-size: 0.9em; }
+        .markdown-preview th, .markdown-preview td { padding: 0.5em 0.75em; }
+        .markdown-preview ul, .markdown-preview ol { padding-left: 1.25em; }
+      }
+
+      /* Table horizontal scroll wrapper */
+      .markdown-preview table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Code block horizontal scroll */
+      .markdown-preview pre {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .markdown-preview pre code {
+        white-space: pre;
+      }
+
+      /* SW Update Toast */
+      #sw-update-toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(120%);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        font-size: 14px;
+        color: var(--text-primary);
+        transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #sw-update-toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #sw-update-toast button {
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: none;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      #sw-update-toast .sw-update-btn {
+        background: var(--interactive-active);
+        color: var(--bg-primary);
+      }
+      #sw-update-toast .sw-dismiss-btn {
+        background: transparent;
+        color: var(--text-muted);
+      }
+      #sw-update-toast .sw-dismiss-btn:hover {
+        background: var(--interactive-hover);
+      }
     </style>
   <script type="importmap">
 {
@@ -137,17 +215,68 @@
 </head>
   <body class="overflow-hidden fixed inset-0 w-full h-full transition-colors duration-200" style="background: var(--bg-primary); color: var(--text-primary);">
     <div id="root" class="h-full w-full"></div>
+    <div id="sw-update-toast">
+      <span>A new version is available</span>
+      <button class="sw-update-btn" onclick="window.location.reload()">Refresh</button>
+      <button class="sw-dismiss-btn" onclick="document.getElementById('sw-update-toast').classList.remove('show')">Later</button>
+    </div>
   <script type="module" src="/index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
+      let toastTimeout;
+
+      function showUpdateToast() {
+        const toast = document.getElementById('sw-update-toast');
+        if (toast && !toast.classList.contains('show')) {
+          toast.classList.add('show');
+        }
+      }
+
+      function hideUpdateToast() {
+        const toast = document.getElementById('sw-update-toast');
+        if (toast) toast.classList.remove('show');
+      }
+
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
             console.log('SW registered: ', registration);
+
+            // Check for updates every 60 seconds
+            setInterval(() => {
+              registration.update().catch(() => {});
+            }, 60000);
+
+            // Listen for new SW installing
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // New version available (existing SW is controlling)
+                    showUpdateToast();
+                  } else {
+                    // First install — activate immediately
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                }
+              });
+            });
           })
           .catch(registrationError => {
             console.log('SW registration failed: ', registrationError);
           });
+
+        // When a new SW takes over, reload automatically
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
     }
   </script>

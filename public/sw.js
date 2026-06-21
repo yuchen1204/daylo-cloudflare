@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daylo-v7';
+const CACHE_NAME = 'daylo-v8';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -18,6 +18,12 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith(self.location.origin)) return;
 
@@ -26,33 +32,30 @@ self.addEventListener('fetch', (event) => {
   // Don't cache API requests
   if (url.pathname.startsWith('/api/')) return;
 
-  // Don't cache hashed assets (Vite handles cache busting via filenames)
-  if (url.pathname.match(/\.[a-zA-Z0-9-]{8,}\.(js|css)$/)) return;
+  // index.html: network-first (always get latest)
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
-  event.respondWith(
-    (async () => {
-      const cachedResponse = await caches.match(event.request);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      try {
-        const response = await fetch(event.request);
-
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+  // Hashed assets (Vite cache-busted filenames): cache-first
+  if (url.pathname.match(/\.[a-zA-Z0-9-]{8,}\.(js|css)$/)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        return cached || fetch(event.request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
-        }
-
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
         });
+      })
+    );
+    return;
+  }
 
-        return response;
-      } catch (error) {
-        console.error('Fetch failed:', error);
-        throw error;
-      }
-    })()
+  // Everything else: network-first
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });

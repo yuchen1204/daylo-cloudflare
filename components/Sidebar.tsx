@@ -583,7 +583,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div 
         className={`
-          fixed inset-y-0 left-0 border-r transform transition-transform duration-300 ease-in-out flex flex-col
+          fixed inset-y-0 left-0 w-72 max-w-[85vw] border-r transform transition-transform duration-300 ease-in-out flex flex-col shrink-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:relative md:translate-x-0
         `}
