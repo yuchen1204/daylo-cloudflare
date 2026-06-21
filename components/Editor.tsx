@@ -632,69 +632,76 @@ export const Editor: React.FC<EditorProps> = ({
                      <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                    </div>
 
-                   {/* More button - toggles dropdown menu */}
-                   <div className="relative">
+                    {/* More button - vertical pill strip */}
+                    <div className="relative flex flex-col items-center">
                       <button
                         onClick={(e) => { e.stopPropagation(); setIsToolbarExpanded(!isToolbarExpanded); }}
-                       className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
-                       style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                       title="More Actions"
-                     >
-                       <MoreVertical className="w-4 h-4" />
-                     </button>
+                        className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
+                        style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        title="More Actions"
+                      >
+                        <ChevronDown
+                          className="w-4 h-4 transition-transform duration-300"
+                          style={{ transform: isToolbarExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                        />
+                      </button>
 
-                     {/* Dropdown Menu */}
-                      {isToolbarExpanded && (
+                      {/* Vertical pill strip */}
+                      <div
+                        className="overflow-hidden transition-all duration-300 ease-in-out z-[60]"
+                        style={{
+                          maxHeight: isToolbarExpanded ? '160px' : '0px',
+                          opacity: isToolbarExpanded ? 1 : 0,
+                        }}
+                      >
                         <div
-                          className="absolute top-full right-0 mt-2 z-[60] shadow-xl rounded-lg p-1 w-10 animate-in fade-in zoom-in-95 duration-100"
+                          className="flex flex-col items-center gap-1 p-1.5 mt-1 rounded-full shadow-xl"
                           style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                         >
-                         {/* Share */}
-                         <button
-                           onClick={() => {
-                             if (!user) {
-                               alert("Please sign in to share notes.");
+                           {/* Share */}
+                           <button
+                             onClick={() => {
+                               if (!user) {
+                                 alert("Please sign in to share notes.");
+                                 setIsToolbarExpanded(false);
+                                 return;
+                               }
                                setIsToolbarExpanded(false);
-                               return;
-                             }
-                             setIsToolbarExpanded(false);
-                             note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
-                           }}
-                           className={`flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-[var(--interactive-hover)] ${
-                             note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
-                           }`}
-                           style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
-                           title="Share"
-                         >
-                           <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
-                         </button>
+                               note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
+                             }}
+                             className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)] ${
+                               note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
+                             }`}
+                             style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
+                             title="Share"
+                           >
+                             <Share2 className={`w-4 h-4 ${note.accessInfo?.isPublic ? "fill-current" : ""}`} />
+                           </button>
 
-                         {/* Pin */}
-                         <button
-                           onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
-                           className="flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-[var(--interactive-hover)]"
-                           style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
-                           title={note.isPinned ? "Unpin" : "Pin"}
-                         >
-                           <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
-                         </button>
+                           {/* Pin */}
+                           <button
+                             onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
+                             className="flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)]"
+                             style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
+                             title={note.isPinned ? "Unpin" : "Pin"}
+                           >
+                             <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
+                           </button>
 
-                         <div className="h-px my-1" style={{ background: 'var(--border-subtle)' }} />
-
-                         {/* Reminder */}
-                         <div className="flex items-center justify-center" onClick={() => setIsToolbarExpanded(false)}>
-                           <ReminderPicker
-                             reminder={note.reminder}
-                             onSet={handleSetReminder}
-                             onClear={handleClearReminder}
-                             onComplete={handleCompleteReminder}
-                           />
-                         </div>
-                       </div>
-                     )}
-                   </div>
+                           {/* Reminder */}
+                           <div className="flex items-center justify-center" onClick={() => setIsToolbarExpanded(false)}>
+                             <ReminderPicker
+                               reminder={note.reminder}
+                               onSet={handleSetReminder}
+                               onClear={handleClearReminder}
+                               onComplete={handleCompleteReminder}
+                              />
+                           </div>
+                        </div>
+                      </div>
+                    </div>
                 </>
               )}
           </div>
