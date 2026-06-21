@@ -632,34 +632,41 @@ export const Editor: React.FC<EditorProps> = ({
                      <button onClick={handleDownload} className="p-2 hover:bg-[var(--interactive-hover)] rounded-md transition-all" style={{ color: 'var(--text-muted)' }} title="Export"><Download className="w-4 h-4" /></button>
                    </div>
 
-                    {/* More button - vertical pill strip */}
-                    <div className="relative">
+                    {/* More button + vertical strip */}
+                    <div className="flex flex-col items-center">
                       <button
                         onClick={(e) => { e.stopPropagation(); setIsToolbarExpanded(!isToolbarExpanded); }}
-                        className={`p-2 rounded-md transition-all ${isToolbarExpanded ? 'bg-[var(--interactive-active)]' : 'hover:bg-[var(--interactive-hover)]'}`}
-                        style={{ color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        className="p-2 rounded-t-lg transition-all hover:bg-[var(--interactive-hover)]"
+                        style={{
+                          color: isToolbarExpanded ? 'var(--text-primary)' : 'var(--text-muted)',
+                          background: isToolbarExpanded ? 'var(--bg-secondary)' : undefined,
+                          borderBottomLeftRadius: isToolbarExpanded ? 0 : undefined,
+                          borderBottomRightRadius: isToolbarExpanded ? 0 : undefined,
+                        }}
                         title="More Actions"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {/* Vertical pill strip */}
+                      {/* Vertical strip - connected to button */}
                       <div
-                        className="absolute top-full right-1/2 translate-x-1/2 z-[60]"
+                        className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out"
                         style={{
+                          maxHeight: isToolbarExpanded ? '140px' : '0px',
                           opacity: isToolbarExpanded ? 1 : 0,
-                          pointerEvents: isToolbarExpanded ? 'auto' : 'none',
-                          transition: 'opacity 0.25s ease',
+                          background: isToolbarExpanded ? 'var(--bg-secondary)' : 'transparent',
+                          borderBottomLeftRadius: isToolbarExpanded ? 12 : 0,
+                          borderBottomRightRadius: isToolbarExpanded ? 12 : 0,
+                          borderTopLeftRadius: 0,
+                          borderTopRightRadius: 0,
+                          borderLeft: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
+                          borderRight: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
+                          borderBottom: isToolbarExpanded ? '1px solid var(--border-primary)' : '1px solid transparent',
+                          boxShadow: isToolbarExpanded ? 'var(--shadow-lg)' : 'none',
                         }}
                       >
                         <div
-                          className="flex flex-col items-center gap-1 p-1.5 mt-2 rounded-full shadow-xl"
-                          style={{
-                            background: 'var(--bg-primary)',
-                            border: '1px solid var(--border-primary)',
-                            transform: isToolbarExpanded ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.9)',
-                            transition: 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
-                          }}
+                          className="flex flex-col items-center py-1"
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -674,7 +681,7 @@ export const Editor: React.FC<EditorProps> = ({
                                setIsToolbarExpanded(false);
                                note.accessInfo?.isPublic ? setIsShareMenuOpen(!isShareMenuOpen) : handleShareToggle();
                              }}
-                             className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)] ${
+                             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-[var(--interactive-hover)] ${
                                note.accessInfo?.isPublic ? 'text-[var(--text-primary)]' : ''
                              }`}
                              style={{ color: note.accessInfo?.isPublic ? undefined : 'var(--text-secondary)' }}
@@ -686,14 +693,12 @@ export const Editor: React.FC<EditorProps> = ({
                            {/* Pin */}
                            <button
                              onClick={() => { togglePin(); setIsToolbarExpanded(false); }}
-                             className="flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[var(--interactive-hover)]"
+                             className="flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-[var(--interactive-hover)]"
                              style={{ color: note.isPinned ? '#f59e0b' : 'var(--text-secondary)' }}
                              title={note.isPinned ? "Unpin" : "Pin"}
                            >
                              <Star className={`w-4 h-4 ${note.isPinned ? "fill-amber-500" : ""}`} />
                            </button>
-
-                           <div className="w-5 h-px" style={{ background: 'var(--border-subtle)' }} />
 
                            {/* Reminder */}
                            <div className="flex items-center justify-center" onClick={() => setIsToolbarExpanded(false)}>
